@@ -1,4 +1,5 @@
 using ComponentArrays
+using MacroTools
 using Base
 
 Base.@kwdef mutable struct MRGModel
@@ -10,30 +11,55 @@ Base.@kwdef mutable struct MRGModel
 end
 
 
-macro mrparam(p)
-    pnam = string(p.args[1])
-    nm = p.args[1]
-    if hasproperty(modmrg.parameters, p.args[1])
-        pval = getproperty(p,p.args[1])
-    else
-        pval = p.args[2]
-        tmpCA = ComponentArray(; zip([nm],[pval])...)
-        modmrg.parameters = vcat(modmrg.parameters,tmpCA)
-        # modmrg.parameters = eval(:(ComponentArray($(nm) = $(pval))))
-        # setproperty!(modmrg.parameters,nm,pval)
-    end
-    pval = string(pval)
-    return quote
-        string($(esc(pnam))," = ", $(pvec),".",$(esc(pnam)))
-    end
+macro mrparam(pin)
 
+    parray = []
+    if pin.head == :block
+        parray = pin.args
+    elseif pin.head == :(=)
+        parray = [pin]
+    else
+        error("Unrecognized parameter definition")
+    end
+    qts = quote
+          end
+    for p in parray
+        pnam = string(p.args[1])
+        nm = p.args[1]
+        if hasproperty(modmrg.parameters, p.args[1])
+            pval = getproperty(p,p.args[1])
+        else
+            pval = p.args[2]
+            tmpCA = ComponentArray(; zip([nm],[pval])...)
+            modmrg.parameters = vcat(modmrg.parameters,tmpCA)
+        end
+        pval = string(pval)
+        qt = quote
+                string($(esc(pnam))," = ", $(pvec),".",$(esc(pnam)))
+            end
+        push!(qts.args,qt)
+    end
+        return qts
 end
 
 
+
 macro model(md)
+    md = MacroTools.striplines(md)
     eval(:(modmrg = MRGModel()))
+
     modfn = md
-    pvec_sym = string(modfn.args[1].args[4])
+    println(modfn)
+    # Grab parameter name checking for inline or not...
+    numArgs = 0
+    if modfn.args[1].head == :call
+        numArgs = length(modfn.args[1].args[2:end])
+    elseif modfn.args[1].head == :tuple
+        numArgs = length(modfn.args[1].args)
+    else
+        error("Unknown argument error")
+    end
+    pvec_sym = string(modfn.args[1].args[numArgs-1])
     eval(:(pvec = $pvec_sym))
     i = 1
     for arg_outer in modfn.args
@@ -42,13 +68,10 @@ macro model(md)
         for arg_inner in arg_outer.args
             if contains(string(arg_inner), "@mrparam")
                 mrg_expr = eval(arg_inner)
+                println(mrg_expr)
                 push!(inner_args,Meta.parse(mrg_expr))
-            elseif startswith(string(arg_inner),"#=")
-                mrg_expr_split = split(string(arg_inner),  r"(#=.*=#)")
-                if mrg_expr_split[2] != ""
-                    mrg_expr = strip(mrg_expr_split[2])
-                    push!(inner_args,Meta.parse(mrg_expr))
-                end
+            else
+                push!(inner_args,arg_inner)
             end
             j = j + 1
         end
@@ -58,7 +81,9 @@ macro model(md)
         end
         i = i + 1
     end
-    modmrg.model = eval(modfn)
+    # Need this nonsense to create function in unique namespace. Probably a much better and safer way to do this, but it works for now.
+    fn = eval(:(() ->  eval($modfn)))
+    modmrg.model = eval(:($fn()))
     modmrg.model_raw = modfn
     return modmrg
 end
