@@ -1,5 +1,4 @@
 using ComponentArrays
-using MacroTools
 using Base
 
 Base.@kwdef mutable struct MRGModel
