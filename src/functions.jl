@@ -24,20 +24,24 @@ macro mrparam(pin)
     qts = quote
           end
     for p in parray
-        pnam = string(p.args[1])
-        nm = p.args[1]
-        if hasproperty(modmrg.parameters, p.args[1])
-            pval = getproperty(p,p.args[1])
-        else
-            pval = p.args[2]
-            tmpCA = ComponentArray(; zip([nm],[pval])...)
-            modmrg.parameters = vcat(modmrg.parameters,tmpCA)
-        end
-        pval = string(pval)
-        qt = quote
-                string($(esc(pnam))," = ", $(pvec),".",$(esc(pnam)))
+        if typeof(p) != LineNumberNode
+            pnam = string(p.args[1])
+            nm = p.args[1]
+            if hasproperty(modmrg.parameters, p.args[1])
+                pval = getproperty(p,p.args[1])
+            else
+                pval = p.args[2]
+                tmpCA = ComponentArray(; zip([nm],[pval])...)
+                modmrg.parameters = vcat(modmrg.parameters,tmpCA)
             end
-        push!(qts.args,qt)
+            pval = string(pval)
+            qt = quote
+                    string($(esc(pnam))," = ", $(pvec),".",$(esc(pnam)))
+                end
+            push!(qts.args,qt)
+        else
+            push!(qts.args,p)
+        end
     end
         return qts
 end
@@ -45,11 +49,8 @@ end
 
 
 macro model(md)
-    md = MacroTools.striplines(md)
     eval(:(modmrg = MRGModel()))
-
     modfn = md
-    println(modfn)
     # Grab parameter name checking for inline or not...
     numArgs = 0
     if modfn.args[1].head == :call
@@ -68,7 +69,6 @@ macro model(md)
         for arg_inner in arg_outer.args
             if contains(string(arg_inner), "@mrparam")
                 mrg_expr = eval(arg_inner)
-                println(mrg_expr)
                 push!(inner_args,Meta.parse(mrg_expr))
             else
                 push!(inner_args,arg_inner)
