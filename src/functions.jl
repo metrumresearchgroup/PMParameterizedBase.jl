@@ -52,14 +52,17 @@ macro model(md)
     modfn = md
     # Grab parameter name checking for inline or not...
     numArgs = 0
+    pPos = 0
     if modfn.args[1].head == :call
         numArgs = length(modfn.args[1].args[2:end])
+        pPos = 4
     elseif modfn.args[1].head == :tuple
         numArgs = length(modfn.args[1].args)
+        pPos = 3
     else
         error("Unknown argument error")
     end
-    pvec_sym = string(modfn.args[1].args[numArgs-1])
+    pvec_sym = string(modfn.args[1].args[pPos])
     eval(:(pvec = $pvec_sym))
     i = 1
     for arg_outer in modfn.args
