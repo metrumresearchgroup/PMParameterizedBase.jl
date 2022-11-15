@@ -9,9 +9,7 @@ Base.@kwdef mutable struct MRGModel
     model_raw = missing
 end
 
-
 macro mrparam(pin)
-
     parray = []
     if pin.head == :block
         parray = pin.args
