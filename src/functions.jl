@@ -20,9 +20,10 @@ macro mrparam(pin)
     end
     qts = quote
           end
+    qtsv = []
     for p in parray
         if typeof(p) != LineNumberNode
-            pnam = string(p.args[1])
+            pnam = p.args[1]
             nm = p.args[1]
             if hasproperty(modmrg.parameters, p.args[1])
                 pval = getproperty(p,p.args[1])
@@ -32,18 +33,15 @@ macro mrparam(pin)
                 modmrg.parameters = vcat(modmrg.parameters,tmpCA)
             end
             pval = string(pval)
-            qt = quote
-                    string($(esc(pnam))," = ", $(pvec),".",$(esc(pnam)))
-                end
-            push!(qts.args,qt)
+            qt = :($pnam = $(pmxsym).$pnam)
+
+            push!(qtsv, qt)
         else
-            push!(qts.args,p)
+            push!(qtsv, p)
         end
     end
-        return qts
+        return qtsv
 end
-
-
 
 macro model(md)
     eval(:(modmrg = MRGModel()))
@@ -60,8 +58,9 @@ macro model(md)
     else
         error("Unknown argument error")
     end
-    pvec_sym = string(modfn.args[1].args[pPos])
-    eval(:(pvec = $pvec_sym))
+    pvec_sym_tmp = modfn.args[1].args[pPos]
+
+    eval(:(pmxsym = Symbol($pvec_sym_tmp)))
     i = 1
     for arg_outer in modfn.args
         j = 1
@@ -69,12 +68,19 @@ macro model(md)
         for arg_inner in arg_outer.args
             if contains(string(arg_inner), "@mrparam")
                 mrg_expr = eval(arg_inner)
-                push!(inner_args,Meta.parse(mrg_expr))
+                qts = quote
+                end
+                for ex in mrg_expr
+                    push!(qts.args,ex)
+                    push!(inner_args, ex)
+
+                end
             else
                 push!(inner_args,arg_inner)
             end
             j = j + 1
         end
+        
 
         if length(inner_args)>0
             modfn.args[i].args = inner_args
