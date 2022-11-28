@@ -5,8 +5,8 @@ Base.@kwdef mutable struct MRGModel
     parameters::ComponentVector{Float64} = ComponentVector{Float64}()
     ICs::ComponentVector{Float64} = ComponentVector{Float64}()
     tspan::Tuple = (0.0, 1.0)
-    model = missing
-    model_raw = missing
+    model::Function = () -> ()
+    model_raw::Expr = quote end
 end
 
 macro mrparam(pin)
@@ -115,4 +115,6 @@ function params(model::MRGModel, params::ComponentArray)
     end
     return mdl_copy
 end
+
+
             
