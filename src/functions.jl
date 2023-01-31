@@ -3,7 +3,7 @@ using Base
 
 Base.@kwdef mutable struct MRGModel
     parameters::ComponentVector{Float64} = ComponentVector{Float64}()
-    ICs::ComponentVector{Float64} = ComponentVector{Float64}()
+    states::ComponentVector{Float64} = ComponentVector{Float64}()
     tspan::Tuple = (0.0, 1.0)
     model::Function = () -> ()
     model_raw::Expr = quote end
@@ -33,8 +33,7 @@ macro mrparam(pin)
                 modmrg.parameters = vcat(modmrg.parameters,tmpCA)
             end
             pval = string(pval)
-            qt = :($pnam = $(pmxsym).$pnam)
-
+            qt = :($pnam = $pmxsym.$pnam)
             push!(qtsv, qt)
         else
             push!(qtsv, p)
@@ -43,10 +42,45 @@ macro mrparam(pin)
         return qtsv
 end
 
-macro model(md)
-    eval(:(modmrg = MRGModel()))
-    modfn = md
-    # Grab parameter name checking for inline or not...
+
+macro mrstate(sin)
+    sarray = []
+    if sin.head == :block
+        sarray = sin.args
+    elseif sin.head == :(=)
+        sarray = [sin]
+    else
+        error("Unrecognized state definition")
+    end
+    qts = quote
+          end
+    qtsv = []
+    for s in sarray
+        if typeof(s) != LineNumberNode
+            snam = s.args[1]
+            nm = s.args[1]
+            if hasproperty(modmrg.states, s.args[1])
+                sval = getproperty(s,s.args[1])
+            else
+                sval = s.args[2]
+                tmpCA = ComponentArray(; zip([nm],[sval])...)
+                modmrg.states = vcat(modmrg.states,tmpCA)
+            end
+            pval = string(sval)
+            qt = :($snam = $(pmxsyms).$snam)
+
+            push!(qtsv, qt)
+        else
+            push!(qtsv, s)
+        end
+    end
+        return qtsv
+end
+
+
+function parse_parameters(modfn, modmrg)
+    modmrg = modmrg
+    # Grab parameter names checking for inline or not...
     numArgs = 0
     pPos = 0
     if modfn.args[1].head == :call
@@ -58,8 +92,7 @@ macro model(md)
     else
         error("Unknown argument error")
     end
-    pvec_sym_tmp = modfn.args[1].args[pPos]
-
+    pvec_sym_tmp = String(modfn.args[1].args[pPos])
     eval(:(pmxsym = Symbol($pvec_sym_tmp)))
     i = 1
     for arg_outer in modfn.args
@@ -87,6 +120,62 @@ macro model(md)
         end
         i = i + 1
     end
+    return modfn
+end
+
+function parse_states(modfn, modmrg)
+    modmrg = modmrg
+    # Grab parameter names checking for inline or not...
+    numArgs = 0
+    sPos = 0
+    if modfn.args[1].head == :call # Check if there is a function name or anonymous function and get position of "u"
+        numArgs = length(modfn.args[1].args[2:end])
+        sPos = 3
+    elseif modfn.args[1].head == :tuple
+        numArgs = length(modfn.args[1].args)
+        sPos = 2
+    else
+        error("Unknown argument error")
+    end
+    svec_sym_tmp = String(modfn.args[1].args[sPos]) # Grab "u" argument from determined "u" position
+    eval(:(pmxsyms = Symbol($svec_sym_tmp)))
+    i = 1
+    for arg_outer in modfn.args
+        j = 1
+        inner_args = []
+        for arg_inner in arg_outer.args
+            if contains(string(arg_inner), "@mrstate") # Check for code defining states
+                mrg_expr = eval(arg_inner)
+                qts = quote
+                end
+                for ex in mrg_expr
+                    push!(qts.args,ex)
+                    push!(inner_args, ex)
+
+                end
+            else
+                push!(inner_args,arg_inner)
+            end
+            j = j + 1
+        end
+
+        if length(inner_args)>0
+            modfn.args[i].args = inner_args
+        end
+        i = i + 1
+    end
+    return modfn
+end
+
+
+macro model(md)
+    eval(:(modmrg = MRGModel()))
+    modfn = md
+    
+    modfn = parse_parameters(modfn, modmrg)
+    modfn = parse_states(modfn, modmrg)
+
+
     # Need this nonsense to create function in unique namespace. Probably a much better and safer way to do this, but it works for now.
     fn = eval(:(() ->  eval($modfn)))
     modmrg.model = eval(:($fn()))
@@ -115,6 +204,3 @@ function params(model::MRGModel, params::ComponentArray)
     end
     return mdl_copy
 end
-
-
-            
