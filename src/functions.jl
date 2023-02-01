@@ -1,5 +1,6 @@
 using ComponentArrays
 using Base
+using PMxSim
 
 Base.@kwdef mutable struct MRGModel
     parameters::ComponentVector{Float64} = ComponentVector{Float64}()
@@ -8,7 +9,7 @@ Base.@kwdef mutable struct MRGModel
     model::Function = () -> ()
     model_raw::Expr = quote end
 end
-
+include("checks.jl")
 macro mrparam(pin)
     parray = []
     if pin.head == :block
@@ -22,19 +23,21 @@ macro mrparam(pin)
           end
     qtsv = []
     for p in parray
+
         if typeof(p) != LineNumberNode
             pnam = p.args[1]
-            nm = p.args[1]
             if hasproperty(modmrg.parameters, p.args[1])
-                pval = getproperty(p,p.args[1])
+                pval = p.args[2]
+                eval(:(modmrg.parameters.$pnam = $pval))
+                @warn "Parameter(s) $pnam defined multiple times, using last value"
             else
                 pval = p.args[2]
-                tmpCA = ComponentArray(; zip([nm],[pval])...)
+                tmpCA = ComponentArray(; zip([pnam],[pval])...)
                 modmrg.parameters = vcat(modmrg.parameters,tmpCA)
+                pval = string(pval)
+                qt = :($pnam = $pmxsym.$pnam)
+                push!(qtsv, qt)
             end
-            pval = string(pval)
-            qt = :($pnam = $pmxsym.$pnam)
-            push!(qtsv, qt)
         else
             push!(qtsv, p)
         end
@@ -58,18 +61,19 @@ macro mrstate(sin)
     for s in sarray
         if typeof(s) != LineNumberNode
             snam = s.args[1]
-            nm = s.args[1]
+
             if hasproperty(modmrg.states, s.args[1])
-                sval = getproperty(s,s.args[1])
+                sval = s.args[2]
+                eval(:(modmrg.states.$snam = $sval))
+                @warn "State(s) $snam defined multiple times, using last value for initial condition"
             else
                 sval = s.args[2]
-                tmpCA = ComponentArray(; zip([nm],[sval])...)
+                tmpCA = ComponentArray(; zip([snam],[sval])...)
                 modmrg.states = vcat(modmrg.states,tmpCA)
+                pval = string(sval)
+                qt = :($snam = $(pmxsyms).$snam)
+                push!(qtsv, qt)
             end
-            pval = string(sval)
-            qt = :($snam = $(pmxsyms).$snam)
-
-            push!(qtsv, qt)
         else
             push!(qtsv, s)
         end
@@ -180,7 +184,13 @@ macro model(md)
     fn = eval(:(() ->  eval($modfn)))
     modmrg.model = eval(:($fn()))
     modmrg.model_raw = modfn
-    return modmrg
+    # rete = checkAll(modmrg)
+    checkAll(modmrg)
+    # if rete != ""
+        # return :(throw(ErrorException($rete)))
+    # else
+        return modmrg
+    # end
 end
 
 function params!(model::MRGModel, params::ComponentArray)
@@ -188,7 +198,7 @@ function params!(model::MRGModel, params::ComponentArray)
         if hasproperty(model.parameters, k)
             setproperty!(model.parameters, k, getproperty(params, k))
         else
-            error("Parameter ", string(k), " not defined in the model")
+            error("Parameter(s) ", string(k), " not defined in the model")
         end
     end
 end
@@ -199,7 +209,7 @@ function params(model::MRGModel, params::ComponentArray)
         if hasproperty(mdl_copy.parameters, k)
             setproperty!(mdl_copy.parameters, k, getproperty(params, k))
         else
-            error("Parameter ", string(k), " not defined in the model")
+            error("Parameter(s) ", string(k), " not defined in the model")
         end
     end
     return mdl_copy

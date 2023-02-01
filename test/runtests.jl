@@ -14,3 +14,5 @@ end
     params!(mdl_basic, p2);
     @test  mdl_basic.parameters == ComponentArray{Float64}(p=-99.0)
 end
+
+include("test_dups.jl")
