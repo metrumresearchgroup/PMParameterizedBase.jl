@@ -7,7 +7,9 @@ Base.@kwdef mutable struct MRGModel
     states::ComponentVector{Float64} = ComponentVector{Float64}()
     tspan::Tuple = (0.0, 1.0)
     model::Function = () -> ()
-    model_raw::Expr = quote end
+    parsed::Expr = quote end
+    original::Expr = quote end
+    raw::Expr = quote end
 end
 include("checks.jl")
 macro mrparam(pin)
@@ -34,7 +36,6 @@ macro mrparam(pin)
                 pval = p.args[2]
                 tmpCA = ComponentArray(; zip([pnam],[pval])...)
                 modmrg.parameters = vcat(modmrg.parameters,tmpCA)
-                pval = string(pval)
                 qt = :($pnam = $pmxsym.$pnam)
                 push!(qtsv, qt)
             end
@@ -70,7 +71,6 @@ macro mrstate(sin)
                 sval = s.args[2]
                 tmpCA = ComponentArray(; zip([snam],[sval])...)
                 modmrg.states = vcat(modmrg.states,tmpCA)
-                pval = string(sval)
                 qt = :($snam = $(pmxsyms).$snam)
                 push!(qtsv, qt)
             end
@@ -84,6 +84,7 @@ end
 
 function parse_parameters(modfn, modmrg)
     modmrg = modmrg
+    is_inplace = du_inplace(modfn)
     # Grab parameter names checking for inline or not...
     numArgs = 0
     pPos = 0
@@ -95,6 +96,9 @@ function parse_parameters(modfn, modmrg)
         pPos = 3
     else
         error("Unknown argument error")
+    end
+    if !is_inplace
+        pPos = pPos - 1
     end
     pvec_sym_tmp = String(modfn.args[1].args[pPos])
     eval(:(pmxsym = Symbol($pvec_sym_tmp)))
@@ -129,6 +133,7 @@ end
 
 function parse_states(modfn, modmrg)
     modmrg = modmrg
+    is_inplace = du_inplace(modfn)
     # Grab parameter names checking for inline or not...
     numArgs = 0
     sPos = 0
@@ -140,6 +145,9 @@ function parse_states(modfn, modmrg)
         sPos = 2
     else
         error("Unknown argument error")
+    end
+    if !is_inplace
+        sPos = sPos - 1
     end
     svec_sym_tmp = String(modfn.args[1].args[sPos]) # Grab "u" argument from determined "u" position
     eval(:(pmxsyms = Symbol($svec_sym_tmp)))
@@ -173,24 +181,20 @@ end
 
 
 macro model(md)
-    eval(:(modmrg = MRGModel()))
-    modfn = md
     
+    eval(:(modmrg = MRGModel()))
+    modmrg.original = MacroTools.striplines(md)
+    modfn = md
+    modmrg.raw = md
     modfn = parse_parameters(modfn, modmrg)
     modfn = parse_states(modfn, modmrg)
-
 
     # Need this nonsense to create function in unique namespace. Probably a much better and safer way to do this, but it works for now.
     fn = eval(:(() ->  eval($modfn)))
     modmrg.model = eval(:($fn()))
-    modmrg.model_raw = modfn
-    # rete = checkAll(modmrg)
+
     checkAll(modmrg)
-    # if rete != ""
-        # return :(throw(ErrorException($rete)))
-    # else
-        return modmrg
-    # end
+    return modmrg
 end
 
 function params!(model::MRGModel, params::ComponentArray)

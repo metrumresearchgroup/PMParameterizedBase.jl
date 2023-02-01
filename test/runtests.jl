@@ -1,5 +1,6 @@
 using PMxSim
 using Test
+using OrdinaryDiffEq: isinplace
 include("testfunctions.jl")
 @testset "Check model basics" begin
     @test mdl_basic.parameters == ComponentArray{Float64}(p=2.0)
@@ -16,3 +17,8 @@ end
 end
 
 include("test_dups.jl")
+
+@testset "Check for inplace and OOP derivatives" begin
+    @test isinplace(mdl_basic.model) == true
+    @test isinplace(mdl_outofplace.model) == false
+end

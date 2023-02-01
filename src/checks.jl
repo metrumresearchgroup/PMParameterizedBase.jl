@@ -1,4 +1,5 @@
 using PMxSim
+using OrdinaryDiffEq: ODEProblem, isinplace
 function variable_parameter_overlap(modmrg::MRGModel)
     pnames = keys(modmrg.parameters)
     snames = keys(modmrg.states)
@@ -25,6 +26,17 @@ function parameter_repeat(modmrg::MRGModel)
         error("Parameter(s) $duplicates defined multiple times")
     end
 end
+
+function du_inplace(md::Expr)
+    header = string(md.args[1])
+    qt = string("function ", header, "; ", "end") 
+    md_expr = Meta.parse(qt)
+    fcn_tmp = eval(md_expr)
+    prob_tmp = ODEProblem(fcn_tmp, nothing, nothing)
+    is_inplace = isinplace(prob_tmp)
+    return is_inplace
+end
+
 
 function checkAll(modmrg::MRGModel)
     # rete = variable_parameter_overlap(modmrg)
