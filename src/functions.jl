@@ -1,16 +1,7 @@
 using ComponentArrays
 using Base
 using PMxSim
-
-Base.@kwdef mutable struct MRGModel
-    parameters::ComponentVector{Float64} = ComponentVector{Float64}()
-    states::ComponentVector{Float64} = ComponentVector{Float64}()
-    tspan::Tuple = (0.0, 1.0)
-    model::Function = () -> ()
-    parsed::Expr = quote end
-    original::Expr = quote end
-    raw::Expr = quote end
-end
+include("MRGModel.jl")
 include("checks.jl")
 macro mrparam(pin)
     parray = []
@@ -191,8 +182,9 @@ macro model(md)
 
     # Need this nonsense to create function in unique namespace. Probably a much better and safer way to do this, but it works for now.
     fn = eval(:(() ->  eval($modfn)))
-    modmrg.model = eval(:($fn()))
-
+    ftmp = eval(:($fn()))
+    modelrepr = MRGModelRepr(ftmp, ComponentArray(a = 2.0), Dict(:A => :B), true)
+    modmrg.model = modelrepr
     checkAll(modmrg)
     return modmrg
 end
