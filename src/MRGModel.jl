@@ -8,6 +8,11 @@ Base.@kwdef struct MRGModelRepr
     state_inputs::ComponentVector{Float64} = ComponentVector{Float64}()
     input_map::Dict{Symbol, Symbol} = Dict{Symbol, Symbol}()
     inplace::Bool = true
+    __IC_Expressions::Expr = quote end
+    __IC_Main::Expr = quote end
+    __parameter_symbol::Symbol = Symbol()
+    __state_symbol::Symbol = Symbol()
+    __deriv_symbol::Symbol = Symbol()
 end
 
 Base.@kwdef mutable struct MRGModel
@@ -18,5 +23,4 @@ Base.@kwdef mutable struct MRGModel
     parsed::Expr = quote end
     original::Expr = quote end
     raw::Expr = quote end
-    _internals = nothing
 end

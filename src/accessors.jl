@@ -18,4 +18,27 @@ end
 
 
 
+function params!(model::MRGModel, params::ComponentArray)
+    for k in keys(params)
+        if hasproperty(model.parameters, k)
+            setproperty!(model.parameters, k, getproperty(params, k))
+        else
+            error("Parameter(s) ", string(k), " not defined in the model")
+        end
+    end
+end
+
+function params(model::MRGModel, params::ComponentArray)
+    mdl_copy = deepcopy(model)
+    for k in keys(params)
+        if hasproperty(mdl_copy.parameters, k)
+            setproperty!(mdl_copy.parameters, k, getproperty(params, k))
+        else
+            error("Parameter(s) ", string(k), " not defined in the model")
+        end
+    end
+    return mdl_copy
+end
+
+
 
