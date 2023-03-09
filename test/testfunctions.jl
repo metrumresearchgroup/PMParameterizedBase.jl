@@ -29,7 +29,7 @@ mdl_differentorder = @model function (du, u, params, t)
     end
     @mrstate u = -9
     @mrparam w = 2
-end
+end;
 
 
 

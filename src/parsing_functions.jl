@@ -153,7 +153,7 @@ function gather_algebraic(modfn)
     # Want to collect only algebraic relationships. Parameter relationships and IC calculations will be added from previous parsing of parameters and states. Parameters will go first, states will go last, with algebraic expressions in between so things are calculated in the proper order. 
     for arg_outer in modfn.args
         if typeof(arg_outer) != LineNumberNode
-            if arg_outer.head != :call
+            if arg_outer.head != :call && arg_outer.head != :tuple
                 for arg_inner in arg_outer.args
                     if !contains(string(arg_inner), "@ddt") && !contains(string(arg_inner), "@mrparam") && !contains(string(arg_inner), "@mrstate")
                         push!(algebraic.args[2].args, arg_inner)

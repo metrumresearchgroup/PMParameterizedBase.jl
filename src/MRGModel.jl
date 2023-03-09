@@ -4,14 +4,12 @@ using ComponentArrays
 
 Base.@kwdef struct MRGModelRepr
     f::Function = () -> ()
-#     # state_inputs::ComponentVector{Float64} = ComponentVector{Float64}()
-#     state_inputs = nothing
-#     input_map::Dict{Symbol, Symbol} = Dict{Symbol, Symbol}()
-#     inplace::Bool = true
+    # state_inputs::ComponentVector{Float64} = ComponentVector{Float64}()
+    # inplace::Bool = true
     ICfcn::Function = () -> ()
-#     __parameter_symbol::Symbol = Symbol()
-#     __state_symbol::Symbol = Symbol()
-#     __deriv_symbol::Symbol = Symbol()
+    # __parameter_symbol::Symbol = Symbol()
+    # __state_symbol::Symbol = Symbol()
+    # __deriv_symbol::Symbol = Symbol()
 end
 
 Base.@kwdef mutable struct MRGModel
@@ -56,7 +54,6 @@ macro model(md)
  
     algebraic = gather_algebraic(md)
     algebraic = buildAlgebraic(algebraic, pnames, snames, svals, psym)
-
     algebraic = MacroTools.postwalk(algebraic) do ex
         ex == psym ? pvec_symbol : ex
     end
