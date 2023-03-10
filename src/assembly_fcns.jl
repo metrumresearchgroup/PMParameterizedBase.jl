@@ -18,7 +18,7 @@ function buildAlgebraic(algebraic, pnames, snames, svals, psym,)
     # Build a line of code to return all the state ICs
     return_line = string("return ComponentArray(")
     for sn in snames
-        return_line = string(return_line, "$sn = $sn, ")
+        return_line = string(return_line, "$sn = Float64($sn), ")
     end
     return_line = string(return_line,")") # Add a closing parenthesis
     return_line = Meta.parse(return_line) # Parse this string to an expression
@@ -31,7 +31,7 @@ function assembleParamArray(pnames, pvals)
     for i in 1:lastindex(pnames)
         pn = pnames[i]
         pv = pvals[i]
-        return_line = string(return_line, "$pn = $pv, ")
+        return_line = string(return_line, "$pn = Float64($pv), ")
     end
     return_line = string(return_line,")") # Add a closing parenthesis
     return_line = Meta.parse(return_line) # Parse this string to an expression
