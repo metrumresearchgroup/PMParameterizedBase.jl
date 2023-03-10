@@ -78,7 +78,7 @@ macro ddt(din)
             dval = d.args[2]
             push!(dnames, dnam)
             push!(dvals, dval)
-            qt = :($dusym.$dnam = $dval)
+            qt = :($dusym.$dnam = $dval + $inputsym.$dnam)
             push!(qtsv, qt)
         else
             push!(qtsv, s)

@@ -27,13 +27,24 @@ function buildAlgebraic(algebraic, pnames, snames, svals, psym,)
 end
 
 function assembleParamArray(pnames, pvals)
-    return_line = string("ComponentArray(")
+    return_line = string("ComponentArray{Float64}(")
     for i in 1:lastindex(pnames)
         pn = pnames[i]
         pv = pvals[i]
         return_line = string(return_line, "$pn = $pv, ")
     end
     return_line = string(return_line,")") # Add a closing parenthesis
+    return_line = Meta.parse(return_line) # Parse this string to an expression
+    return return_line
+end
+
+function assembleInputs(snames)
+    return_line = string("ComponentArray{Float64}(")
+    for i in 1:lastindex(snames)
+        sn = snames[i]
+        return_line = string(return_line, "$sn = 0.0, ")
+    end
+    return_line = string(return_line, ")") # Add a closing parenthesis
     return_line = Meta.parse(return_line) # Parse this string to an expression
     return return_line
 end

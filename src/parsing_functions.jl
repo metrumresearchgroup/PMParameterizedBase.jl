@@ -1,15 +1,6 @@
 using PMxSim
 using MacroTools
 
-# Create a bunch of unique variable names within the module namespace to reference derivatives, states, parameters, and time
-# These will later be replaced with the correct symbols from the code using MacroTools.postwalk
-# As of right now, "tsym" for time is unused.
-usym = gensym()
-dusym = gensym()
-psym = gensym()
-tsym = gensym()
-
-
 function parse_parameters(modfn)
     pnames = []
     pvals = []
