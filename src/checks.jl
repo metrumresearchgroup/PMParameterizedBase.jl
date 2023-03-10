@@ -53,12 +53,22 @@ function parameter_vec_rename(pnames, pvec_symbol)
 end
 
 function du_inplace(md::Expr)
-    header = string(md.args[1])
-    qt = string("function ", header, "; ", "end") 
-    md_expr = Meta.parse(qt)
-    local fcn_tmp = eval(md_expr)
-    prob_tmp = ODEProblem(fcn_tmp, nothing, nothing)
-    is_inplace = isinplace(prob_tmp)
-    return is_inplace
+    header = copy(md.args[1])
+    is_inplace = true
+    numkwargs = 0
+    for (i,arg) in enumerate(header.args)
+        if typeof(arg) != Symbol && arg.head == :parameters
+            numkwargs += 1
+        end
+    end
+    
+    if (length(header.args)-numkwargs) == 5
+        is_inplace = true
+    elseif (length(header.args)-numkwargs) == 4
+        is_inplace = false
+    else
+        error("Unrecognized model function protoype: $header Please separate kwargs with a ';'")
+    end
+    return is_inplace, numkwargs
 end
 

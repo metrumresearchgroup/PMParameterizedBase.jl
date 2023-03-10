@@ -4,15 +4,15 @@ using MacroTools
 function parse_parameters(modfn)
     pnames = []
     pvals = []
-    is_inplace = du_inplace(modfn)
+    is_inplace, numkwargs = du_inplace(modfn)
     numArgs = 0
     pPos = 0
     if modfn.args[1].head == :call
         numArgs = length(modfn.args[1].args[2:end])
-        pPos = 4
+        pPos = 4 + numkwargs
     elseif modfn.args[1].head == :tuple
         numArgs = length(modfn.args[1].args)
-        pPos = 3
+        pPos = 3 + numkwargs
     else
         error("Unknown argument error")
     end
@@ -50,15 +50,15 @@ end
 function parse_states(modfn)
     snames = []
     svals = []
-    is_inplace = du_inplace(modfn)
+    is_inplace, numkwargs = du_inplace(modfn)
     numArgs = 0
     sPos = 0
     if modfn.args[1].head == :call
         numArgs = length(modfn.args[1].args[2:end])
-        sPos = 3
+        sPos = 3 + numkwargs
     elseif modfn.args[1].head == :tuple
         numArgs = length(modfn.args[1].args)
-        sPos = 2
+        sPos = 2 + numkwargs
     else
         error("Unknown argument error")
     end
@@ -94,22 +94,25 @@ end
 function parse_derivatives(modfn)
     dnames = []
     dvals = []
-    is_inplace = du_inplace(modfn)
+    is_inplace, numkwargs = du_inplace(modfn)
     numArgs = 0
     dPos = 0
     if modfn.args[1].head == :call
         numArgs = length(modfn.args[1].args[2:end])
-        dPos = 2
+        dPos = 2 + numkwargs
     elseif modfn.args[1].head == :tuple
         numArgs = length(modfn.args[1].args)
-        dPos = 1
+        dPos = 1 + numkwargs
     else
         error("Unknown argument error")
     end
     dvec_symbol = modfn.args[1].args[dPos]
     if !is_inplace
         dvec_symbol = gensym(:du)
+        insert!(modfn.args[2].args, 1, :($dusym = similar($usym)))
+        # modfn.args = [modfn.args[1], :($dusym = similar($usym)), modfn.args[2:end]...]
     end
+
     i = 1
     for arg_outer in modfn.args
         j = 1

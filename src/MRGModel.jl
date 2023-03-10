@@ -45,6 +45,7 @@ macro model(md)
 
     ## Parse Derivatives
     modfn, dvec_symbol, dnames, dvals = parse_derivatives(modfn)
+
     # Replace internal symbol with model symbol for states and derivatives
     modfn = MacroTools.postwalk(modfn) do ex 
         ex == usym ? uvec_symbol : ex
@@ -58,12 +59,20 @@ macro model(md)
     # Need to add input vector to default arguments.
     ## First build the component aray with default rates of 0.0
     inputCA = assembleInputs(snames)
+    mod_inplace,numkwargs = du_inplace(modfn)
     # Now add it to the function arguments as a kw arg with a default value, so there are no inputs, by default.
     for i in 1:lastindex(modfn.args)
         if modfn.args[i].head == :call
-            push!(modfn.args[i].args, :($(Expr(:kw, inputsym, inputCA))))
+            if typeof(modfn.args[i].args[2]) != Symbol && modfn.args[i].args[2].head == :parameters
+                push!(modfn.args[i].args[2].args, :($(Expr(:kw, inputsym, inputCA))))
+            else
+                arg2 = :($(Expr(:parameters, :($(Expr(:kw, inputsym, inputCA))))))
+                # modfn.args[i].args = [modfn.args[i].args[1], arg2, modfn.args[i].args[2:end]...]
+                insert!(modfn.args[i].args, 2, arg2)
+            end
         end
     end
+
 
 
  
@@ -73,8 +82,7 @@ macro model(md)
         ex == psym ? pvec_symbol : ex
     end
 
-    # mdl = :(MRGModelRepr(()->(), ComponentVector(), Dict(:A => :B), true, $algebraic, $pvec_symbol, $uvec_symbol, $dvec_symbol))
-    mod_inplace = du_inplace(modfn)
+
 
     psym_out = quote $(Expr(:quote, pvec_symbol)) end
     usym_out = quote $(Expr(:quote, uvec_symbol)) end
@@ -82,7 +90,6 @@ macro model(md)
     isym_out = quote $(Expr(:quote, inputsym)) end
     mdl = :(MRGModelRepr($modfn, $inputCA, $mod_inplace, $algebraic, $psym_out, $usym_out, $dusym_out, $isym_out))
 
-    # modmrg = :(MRGModel($pCA, $algebraic($pCA), (0.0, 1.0), $mdl, md, md, md))
 
     modRaw = quote $(Expr(:quote, modfn)) end
     modExpr_stripped = MacroTools.striplines(modfn)

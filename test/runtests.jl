@@ -23,8 +23,8 @@ include("test_dups.jl")
 
 @testset "Check for inplace and OOP derivatives" begin
     include("testfunctions.jl")
-    iip_problem = ODEProblem(mdl_basic.model.f, nothing, nothing)
-    oop_problem = ODEProblem(mdl_outofplace.model.f, nothing, nothing)
+    iip_problem = ODEProblem(mdl_basic.model.f, nothing, nothing,input=nothing)
+    oop_problem = ODEProblem(mdl_outofplace.model.f, nothing, nothing,input=nothing)
     @test isinplace(iip_problem) == true
     @test mdl_basic.parameters == ComponentVector(p = 2.0)
     @test mdl_basic.states == ComponentVector(x = 9.0)
