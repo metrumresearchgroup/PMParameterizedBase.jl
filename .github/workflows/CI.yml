@@ -27,9 +27,6 @@ jobs:
           - x64
         include:
           - os: macOS-latest
-            arch: arm64
-            version: 1
-          - os: macOS-latest
             arch: x64
             version: 1
           - os: windows-latest
@@ -41,6 +38,7 @@ jobs:
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
+          include-all-prereleases: true
       - uses: julia-actions/cache@v1
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
