@@ -31,4 +31,24 @@ include("test_dups.jl")
     @test isinplace(oop_problem) == false
     @test mdl_outofplace.parameters == ComponentVector(p = 2.0)
     @test mdl_outofplace.states == ComponentVector(x = 9.0)
+    @test mdl_basic.model.inplace == true
+    @test mdl_outofplace.model.inplace == false
+    @test mdl_kws_iip.model.inplace == true
+    @test mdl_kws_oop.model.inplace ==false
+    @test_throws ErrorException("Unrecognized model function protoype: invitro_cytotoxicity(du, u, p, t, q; k = 2, foo = -99) Please separate kwargs with a ';'") @macroexpand  @model function invitro_cytotoxicity(du, u, p, t, q; k=2, foo=-99)
+        @mrparam begin
+           q = 2
+           x = 6
+        end
+         k = 3+q
+    
+        @mrstate begin
+           g = -99/k
+           y = 2
+           h = q * 2.3 + x
+        end
+    
+        @ddt g = -2 * y
+    end;
+
 end
