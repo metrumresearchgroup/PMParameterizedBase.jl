@@ -35,20 +35,12 @@ include("test_dups.jl")
     @test mdl_outofplace.model.inplace == false
     @test mdl_kws_iip.model.inplace == true
     @test mdl_kws_oop.model.inplace ==false
-    @test_throws ErrorException("Unrecognized model function protoype: invitro_cytotoxicity(du, u, p, t, q; k = 2, foo = -99) Please separate kwargs with a ';'") @macroexpand  @model function invitro_cytotoxicity(du, u, p, t, q; k=2, foo=-99)
-        @mrparam begin
-           q = 2
-           x = 6
-        end
-         k = 3+q
-    
-        @mrstate begin
-           g = -99/k
-           y = 2
-           h = q * 2.3 + x
-        end
-    
-        @ddt g = -2 * y
-    end;
+    @test_throws ErrorException("Unrecognized model function protoype: invitro_cytotoxicity(du, u, p, t, q; k = 2, foo = -99) Please separate kwargs with a ';'") test_iip_oop()
+end
 
+## Derivative Tests
+@testset "Check for derivative and state definitions" begin
+    include("derivative_tests.jl")
+    @test_throws ErrorException("No derivative provided for states(s) R2") deriv_test1()
+    @test_throws ErrorException("No derivative provided for states(s) R3") deriv_test2()
 end
