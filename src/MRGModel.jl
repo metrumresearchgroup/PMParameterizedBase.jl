@@ -61,6 +61,7 @@ macro model(md)
         ex == dusym ? dvec_symbol : ex
     end
     derivative_repeat(dnames)
+    derivative_exists(dnames, snames)
 
 
     # Need to add input vector to default arguments.

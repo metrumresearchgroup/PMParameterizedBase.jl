@@ -58,6 +58,35 @@ function derivative_repeat(dnames)
     end
 end
 
+function derivative_exists(dnames, snames)
+    missingD = Vector{Symbol}[]
+    missingS = Vector{Symbol}[]
+    for dn in dnames
+        if dn ∉ snames
+            push!(missingD, dn)
+        end
+        missingDJoined = join(missingD,", ", " and ")
+        if length(missingD) > 0
+            error("Derivative(s) $missingDJoined do not correspond to defined states")
+        end
+    end
+
+    for sn in snames
+        if sn ∉ dnames
+            push(missingS, sn)
+        end
+        missingSJoined = join(missingS,", ", " and ")
+        if length(missingS) > 0
+            error("No derivative provided for states(s) $missingSJoined")
+        end
+    end
+end
+
+end
+
+    
+
+
 function parameter_vec_rename(pnames, pvec_symbol)
     if any(pnames .== pvec_symbol)
         overlap = findall(pnames .== pvec_symbol)
