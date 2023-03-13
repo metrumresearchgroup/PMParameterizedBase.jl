@@ -59,29 +59,27 @@ function derivative_repeat(dnames)
 end
 
 function derivative_exists(dnames, snames)
-    missingD = Vector{Symbol}[]
-    missingS = Vector{Symbol}[]
+    missingD = Vector{Symbol}()
+    missingS = Vector{Symbol}()
     for dn in dnames
         if dn ∉ snames
             push!(missingD, dn)
         end
-        missingDJoined = join(missingD,", ", " and ")
-        if length(missingD) > 0
-            error("Derivative(s) $missingDJoined do not correspond to defined states")
-        end
+    end
+    missingDJoined = join(missingD,", ", " and ")
+    if length(missingD) > 0
+        error("Derivative(s) $missingDJoined do not correspond to defined states")
     end
 
     for sn in snames
         if sn ∉ dnames
-            push(missingS, sn)
-        end
-        missingSJoined = join(missingS,", ", " and ")
-        if length(missingS) > 0
-            error("No derivative provided for states(s) $missingSJoined")
+            push!(missingS, sn)
         end
     end
-end
-
+    missingSJoined = join(missingS,", ", " and ")
+    if length(missingS) > 0
+        error("No derivative provided for states(s) $missingSJoined")
+    end
 end
 
     
