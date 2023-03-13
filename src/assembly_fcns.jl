@@ -48,3 +48,49 @@ function assembleInputs(snames)
     return_line = Meta.parse(return_line) # Parse this string to an expression
     return return_line
 end
+
+
+function insertParameters(modfn, pnames, pvals, pvec_sym; parse = true)
+    modExprs = modfn.args[2] # Ignore function call and grab the block containing everything else
+    lastline = 0 # Rembember and return the last line of parameter definitions because we want to insert @constants after this.
+    for (i, (pn,pv)) in enumerate(zip(reverse(pnames),reverse(pvals))) # Flip this so these are inserted in the same order as they are defined
+        if parse
+            expr_tmp = :($pn = $pvec_sym.$pn)
+        else
+            expr_tmp = :($pn = $pv)
+        end
+        insert!(modExprs.args, 1, expr_tmp)
+        lastline = i
+    end
+    modfn.args[2] = modExprs
+    return modfn, lastline
+end
+
+
+function insertMain(modfn, mnames, mvals, pline; parse = true)
+    modExprs = modfn.args[2]
+    lastline = pline+1 # Rembember and return the last line of constant definitions because we want to insert @states after this.
+    for (i, (mn, mv)) in enumerate(zip(reverse(mnames),reverse(mvals))) # Flip this so these are inserted in the same order as they are defined
+        expr_tmp = :($mn = $mv)
+        insert!(modExprs.args, pline+1, expr_tmp)
+        lastline = lastline + 1
+    end
+    modfn.args[2] = modExprs
+    return modfn, lastline
+end
+
+function insertStates(modfn, snames, svals, svec_sym, mline; parse = true)
+    modExprs = modfn.args[2]
+    lastline = mline # Rembember and return the last line of state definitions because we want to insert everything else after this. 
+    for (i, (sn, sv)) in enumerate(zip(reverse(snames),reverse(svals)))
+        if parse
+            expr_tmp = :($sn = $svec_sym.$sn)
+        else
+            expr_tmp = :($sn = $sv)
+        end
+        insert!(modExprs.args, mline+1, expr_tmp)
+        lastline = lastline + 1
+    end
+    modfn.args[2] = modExprs
+    return modfn, lastline
+end

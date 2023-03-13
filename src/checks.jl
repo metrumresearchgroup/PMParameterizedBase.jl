@@ -23,6 +23,20 @@ function variable_parameter_overlap(pnames, snames, pvec_symbol, svec_symbol)
     end
 end
 
+function constant_parameter_overlap(mnames, pnames)
+    if !isempty(intersect(mnames, pnames))
+        overlap = intersect(pnames, mnames)
+        @warn string.("Parameter(s) ", join(overlap,", ", " and ")," over-written by constants")
+    end
+end
+
+function constant_state_overlap(mnames, snames)
+    if !isempty(intersect(mnames, snames))
+        overlap = intersect(mnames, snames)
+        error(string.("There are both states and constants named ", join(overlap,", "," and ")))
+    end
+end
+
 function variable_repeat(snames)
     repeated = join(nonunique(snames),", ", " and ")
     if length(repeated) > 0
@@ -71,4 +85,5 @@ function du_inplace(md::Expr)
     end
     return is_inplace, numkwargs
 end
+
 

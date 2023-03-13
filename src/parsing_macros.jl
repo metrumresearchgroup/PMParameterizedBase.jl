@@ -87,4 +87,31 @@ macro ddt(din)
     return qtsv, dnames, dvals
 end
 
-
+macro constant(min)
+    marray = []
+    mnames = []
+    mvals = []
+    if min.head == :block
+        marray = min.args
+    elseif min.head == :(=)
+        marray = [min]
+    else
+        error("Unrecognized expression '@main'")
+    end
+    qts = quote
+    end
+    qtsv = []
+    for m in marray
+        if typeof(m) != LineNumberNode
+            mnam = m.args[1]
+            mval = m.args[2]
+            push!(mnames, mnam)
+            push!(mvals, mval)
+            qt = :($mnam = $mval)
+            push!(qtsv, qt)
+        else
+            push!(qtsv, m)
+        end
+    end
+    return qtsv, mnames, mvals
+end

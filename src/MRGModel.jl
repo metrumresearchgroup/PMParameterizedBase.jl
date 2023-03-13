@@ -36,16 +36,23 @@ macro model(md)
     end
     pCA = assembleParamArray(pnames, pvals)
 
+
+    ## Parse Constants
+    modfn, mnames, mvals = parse_constants(modfn)
+    constant_parameter_overlap(mnames, pnames)
+
     ## Parse States
     modfn, uvec_symbol, snames, svals = parse_states(modfn)
     variable_repeat(snames)
-
     variable_parameter_overlap(pnames, snames, pvec_symbol, uvec_symbol)
+    constant_state_overlap(mnames, snames)
 
+
+    # We need to grab a copy of the model here, before we parse the derivatives so they can be ignored when we look for algebraic expressions
+    modfn_alg = copy(modfn)
 
     ## Parse Derivatives
     modfn, dvec_symbol, dnames, dvals = parse_derivatives(modfn)
-
     # Replace internal symbol with model symbol for states and derivatives
     modfn = MacroTools.postwalk(modfn) do ex 
         ex == usym ? uvec_symbol : ex
@@ -76,13 +83,23 @@ macro model(md)
 
 
  
-    algebraic = gather_algebraic(md)
+
+    # Let's re-order for the algebraic representation, first. Here, we don't parse the parameters/states, just reorder and leave their definitions intact.
+    modfn_alg, pline_alg = insertParameters(modfn_alg, pnames, pvals, pvec_symbol; parse = false)
+    modfn_alg, mline_alg = insertMain(modfn_alg, mnames, mvals, pline_alg; parse = false)
+    modfn_alg, sline_alg = insertStates(modfn_alg, snames, svals, uvec_symbol, mline_alg; parse = false)
+
+    # Now the actual model.
+    modfn, pline = insertParameters(modfn, pnames, pvals, pvec_symbol; parse = true)
+    modfn, mline = insertMain(modfn, mnames, mvals, pline; parse = true)
+    modfn, sline = insertStates(modfn, snames, svals, uvec_symbol, mline; parse = true)
+
+
+    algebraic, vnames, vvals = gather_algebraic(modfn_alg)
     algebraic = buildAlgebraic(algebraic, pnames, snames, svals, psym)
     algebraic = MacroTools.postwalk(algebraic) do ex
         ex == psym ? pvec_symbol : ex
     end
-
-
 
     psym_out = quote $(Expr(:quote, pvec_symbol)) end
     usym_out = quote $(Expr(:quote, uvec_symbol)) end
@@ -95,7 +112,6 @@ macro model(md)
     modExpr_stripped = MacroTools.striplines(modfn)
     modExpr = quote $(Expr(:quote, modExpr_stripped)) end
     modOrig = quote $(Expr(:quote, md)) end
-
 
     modmrg = :(MRGModel($pCA, $algebraic($pCA), (0.0, 1.0), $mdl, $modExpr, $modOrig, $modRaw))
 
