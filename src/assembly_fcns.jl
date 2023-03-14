@@ -66,6 +66,8 @@ function insertParameters(modfn, pnames, pvals, pvec_sym; parse = true)
         insert!(modExprs.args, 1, expr_tmp) # OG
         lastline = i
     end
+    # TODO
+    # Consider switching over to a ComponentArray representation in parsed functions
     # This is if you want to switch to a ComponentArray representation in parsed function
     # if parse
     #     str_tmp = join(str_tmp,", ")
