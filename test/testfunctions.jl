@@ -58,7 +58,7 @@ mdl_kws_iip = @model function test(du, u, p, t; k=2, foo=-99)
     @ddt h = 0.0
 end;
 
-mdl_kws_oop = @model function test(u, p, t; k=2, foo=-99)
+mdl_kws_oop = @model function test(u, p, t; k, foo=-99)
     @mrparam begin
        q = 2
        x = 6

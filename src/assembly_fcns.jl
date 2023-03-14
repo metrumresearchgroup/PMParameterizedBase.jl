@@ -57,7 +57,7 @@ function insertParameters(modfn, pnames, pvals, pvec_sym; parse = true)
         if parse
             expr_tmp = :($pn = $pvec_sym.$pn)
         else
-            expr_tmp = :($pn = $pv)
+            expr_tmp = :(@mrparam $pn = $pv)
         end
         insert!(modExprs.args, 1, expr_tmp)
         lastline = i
@@ -86,7 +86,7 @@ function insertStates(modfn, snames, svals, svec_sym, mline; parse = true)
         if parse
             expr_tmp = :($sn = $svec_sym.$sn)
         else
-            expr_tmp = :($sn = $sv)
+            expr_tmp = :(@mrstate $sn = $sv)
         end
         insert!(modExprs.args, mline+1, expr_tmp)
         lastline = lastline + 1

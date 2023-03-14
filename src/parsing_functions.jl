@@ -153,7 +153,15 @@ end
 function gather_algebraic(modfn)
     vnames = []
     vvals = []
-    algebraic = :(function($psym, ) end) # Create a function expression to hold our stuff
+    fname = gensym("ICs")
+    algebraic = :(function $fname($psym, ) end) # Create a function expression to hold our stuff
+    # Want to add kwargs if they exist
+    header = modfn.args[1].args
+    for arg in header
+        if typeof(arg)!=Symbol && arg.head == :parameters
+            insert!(algebraic.args[1].args, 2, arg)
+        end
+    end
     algebraic = MacroTools.striplines(algebraic)
     # Want to collect only algebraic relationships. Parameter relationships and IC calculations will be added from previous parsing of parameters and states. Parameters will go first, states will go last, with algebraic expressions in between so things are calculated in the proper order. 
     for arg_outer in modfn.args
