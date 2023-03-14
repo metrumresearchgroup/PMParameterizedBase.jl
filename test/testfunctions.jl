@@ -15,7 +15,7 @@ mdl_outofplace = @model function oop(u, params, t)
 end;
 
 
-mdl_differentorder = @model function (du, u, params, t)
+mdl_differentorder = @model function (du, u, params, t; k =2)
     @mrparam p = 2
     @mrstate x = 9
     @mrparam z = 3

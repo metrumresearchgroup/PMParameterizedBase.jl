@@ -101,7 +101,6 @@ function parse_derivatives(modfn)
     if !is_inplace
         dvec_symbol = gensym(:du)
         insert!(modfn.args[2].args, 1, :($dusym = similar($usym)))
-        # modfn.args = [modfn.args[1], :($dusym = similar($usym)), modfn.args[2:end]...]
     end
 
     for (i, arg_outer) in enumerate(modfn.args)

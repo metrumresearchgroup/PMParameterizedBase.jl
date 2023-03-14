@@ -31,7 +31,7 @@ macro model(md)
     modfn = copy(md)
 
     ## Parse Parameters
-    modfn, pvec_symbol, pnames, pvals = parse_parameters(modfn)  
+    modfn, pvec_symbol, pnames, pvals = parse_parameters(modfn)
     parameter_repeat(pnames)
     parameter_vec_rename(pnames, pvec_symbol)
     modfn = MacroTools.postwalk(modfn) do ex 

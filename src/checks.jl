@@ -102,10 +102,17 @@ function du_inplace(md::Expr)
             numkwargs += 1
         end
     end
-    
-    if (length(header.args)-numkwargs) == 5
+    isanon = 0
+    if md.args[1].head == :call
+        isanon = 0
+    elseif md.args[1].head == :tuple
+        isanon = 1
+    else
+        error("Unknown argument error")
+    end
+    if (length(header.args)-numkwargs) == (5-isanon)
         is_inplace = true
-    elseif (length(header.args)-numkwargs) == 4
+    elseif (length(header.args)-numkwargs) == (4-isanon)
         is_inplace = false
     else
         error("Unrecognized model function protoype: $header Please separate kwargs with a ';'")
