@@ -97,7 +97,6 @@ macro model(md)
     modfn, sline = insertStates(modfn, snames, svals, uvec_symbol, mline; parse = true)
 
 
-
     algebraic, vnames, vvals = gather_algebraic(modfn_alg)
     algebraic = buildAlgebraic(algebraic, pnames, snames, svals, psym)
     algebraic = MacroTools.postwalk(algebraic) do ex
