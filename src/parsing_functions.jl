@@ -124,7 +124,7 @@ function parse_derivatives(modfn)
     return modfn, dvec_symbol, dnames, dvals
 end
 
-
+# TODO: need to decide if constants should stay in model directly below parameters or should be extracted to parameter vector
 function parse_constants(modfn)
     mnames = []
     mvals = []
