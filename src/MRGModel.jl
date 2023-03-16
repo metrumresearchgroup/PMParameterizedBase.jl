@@ -8,6 +8,7 @@ Base.@kwdef struct MRGModelRepr
     inplace::Bool = true
     ICfcn::Function = () -> ()
     Obsfcn::Function = () -> ()
+    __ICheader::Expr = :()
     __parameter_symbol::Symbol = Symbol()
     __state_symbol::Symbol = Symbol()
     __deriv_symbol::Symbol = Symbol()
@@ -107,7 +108,7 @@ macro model(md)
     dusym_out = quote $(Expr(:quote, dvec_symbol)) end
     isym_out = quote $(Expr(:quote, inputsym)) end
     ICfcn_args = quote $(Expr(:quote, ICfcn.args[1])) end
-    mdl = :(MRGModelRepr($modfn, $inputCA, $mod_inplace, $ICfcn, $Obsfcn, $psym_out, $usym_out, $dusym_out, $isym_out))
+    mdl = :(MRGModelRepr($modfn, $inputCA, $mod_inplace, $ICfcn, $Obsfcn, $ICfcn_args, $psym_out, $usym_out, $dusym_out, $isym_out))
 
 
     modRaw = quote $(Expr(:quote, modfn)) end

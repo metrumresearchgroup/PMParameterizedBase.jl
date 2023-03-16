@@ -135,6 +135,8 @@ function buildObserved(modfn, onames, dusym)
     for ex in modfn.args[2].args
         if typeof(ex) == LineNumberNode
             push!(Obsfcn.args[2].args, ex)
+        elseif typeof(ex) == Symbol
+            continue
         elseif typeof(ex.args[1]) == Symbol
             push!(Obsfcn.args[2].args, ex)
         elseif ex.args[1].args[1] == dusym
