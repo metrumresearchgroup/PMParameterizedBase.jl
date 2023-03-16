@@ -126,15 +126,15 @@ end
 
 # TODO: Need to decide if constants should stay in model directly below parameters or should be extracted to parameter vector
 function parse_constants(modfn)
-    mnames = []
-    mvals = []
+    cnames = []
+    cvals = []
     for (i, arg_outer) in enumerate(modfn.args)
         inner_args = []
         for (j, arg_inner) in enumerate(arg_outer.args)
             if contains(string(arg_inner), "@constant")
-                mrg_expr, mnam_ij, mval_ij = eval(arg_inner)
-                mnames = vcat(mnames, mnam_ij)
-                mvals = vcat(mvals, mval_ij)
+                mrg_expr, cnam_ij, cval_ij = eval(arg_inner)
+                cnames = vcat(cnames, cnam_ij)
+                cvals = vcat(cvals, cval_ij)
                 # We will rebuild the constants later.
                 deleteat!(arg_outer.args,j)
             else
@@ -145,7 +145,7 @@ function parse_constants(modfn)
             modfn.args[i].args = inner_args
         end
     end
-    return modfn, mnames, mvals
+    return modfn, cnames, cvals
 end
 
 function parse_observed(modfn)
@@ -172,35 +172,7 @@ function parse_observed(modfn)
 end
             
 
-function gather_algebraic(modfn)
-    vnames = []
-    vvals = []
-    fname = gensym("ICs")
-    algebraic = :(function $fname($psym, ) end) # Create a function expression to hold our stuff
-    # Want to add kwargs if they exist
-    header = modfn.args[1].args
-    for arg in header
-        if typeof(arg)!=Symbol && arg.head == :parameters
-            insert!(algebraic.args[1].args, 2, arg)
-        end
-    end
-    algebraic = MacroTools.striplines(algebraic)
-    # Want to collect only algebraic relationships. Parameter relationships and IC calculations will be added from previous parsing of parameters and states. Parameters will go first, states will go last, with algebraic expressions in between so things are calculated in the proper order. 
-    for arg_outer in modfn.args
-        if typeof(arg_outer) != LineNumberNode
-            if arg_outer.head != :call && arg_outer.head != :tuple
-                for arg_inner in arg_outer.args
-                    if !contains(string(arg_inner), "@ddt") && !contains(string(arg_inner), "@mrparam") && !contains(string(arg_inner), "@mrstate")
-                        push!(algebraic.args[2].args, arg_inner)
-                    end
-                end
-            end
-        else
-            push!(algebraic.args, arg_inner)
-        end
-    end
-    return algebraic, vnames, vvals
-end
+
 
 
 

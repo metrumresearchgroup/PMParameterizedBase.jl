@@ -29,6 +29,7 @@ end
 
 macro model(md)
     modfn = copy(md)
+    modheader = modfn.args[1]
 
     ## Parse Parameters
     modfn, pvec_symbol, pnames, pvals = parse_parameters(modfn)
@@ -40,14 +41,14 @@ macro model(md)
     pCA = assembleParamArray(pnames, pvals)
 
     ## Parse Constants
-    modfn, mnames, mvals = parse_constants(modfn)
-    constant_parameter_overlap(mnames, pnames)
+    modfn, cnames, cvals = parse_constants(modfn)
+    constant_parameter_overlap(cnames, pnames)
 
     ## Parse States
     modfn, uvec_symbol, snames, svals = parse_states(modfn)
     variable_repeat(snames)
     variable_parameter_overlap(pnames, snames, pvec_symbol, uvec_symbol)
-    constant_state_overlap(mnames, snames)
+    constant_state_overlap(cnames, snames)
 
 
     # We need to grab a copy of the model here, before we parse the derivatives so they can be ignored when we look for algebraic expressions
@@ -82,24 +83,16 @@ macro model(md)
         end
     end
 
-
-
- 
-
-    # Let's re-order for the algebraic representation, first. Here, we don't parse the parameters/states, just reorder and leave their definitions intact.
-    modfn_alg, pline_alg = insertParameters(modfn_alg, pnames, pvals, pvec_symbol; parse = false)
-    modfn_alg, mline_alg = insertMain(modfn_alg, mnames, mvals, pline_alg; parse = false)
-    modfn_alg, sline_alg = insertStates(modfn_alg, snames, svals, uvec_symbol, mline_alg; parse = false)
     
     # Now the actual model.
     modfn, pline = insertParameters(modfn, pnames, pvals, pvec_symbol; parse = true)
-    modfn, mline = insertMain(modfn, mnames, mvals, pline; parse = true)
+    modfn, mline = insertConstants(modfn, cnames, cvals, pline; parse = true)
     modfn, sline = insertStates(modfn, snames, svals, uvec_symbol, mline; parse = true)
 
 
-    algebraic, vnames, vvals = gather_algebraic(modfn_alg)
-    algebraic = buildAlgebraic(algebraic, pnames, snames, svals, psym)
-    algebraic = MacroTools.postwalk(algebraic) do ex
+
+    ICfcn = buildICs(modheader, pnames, cnames, snames, pvals, cvals, svals, pvec_symbol)
+    ICfcn = MacroTools.postwalk(ICfcn) do ex
         ex == psym ? pvec_symbol : ex
     end
 
@@ -108,8 +101,8 @@ macro model(md)
     usym_out = quote $(Expr(:quote, uvec_symbol)) end
     dusym_out = quote $(Expr(:quote, dvec_symbol)) end
     isym_out = quote $(Expr(:quote, inputsym)) end
-    algebraic_args = quote $(Expr(:quote, algebraic.args[1])) end
-    mdl = :(MRGModelRepr($modfn, $inputCA, $mod_inplace, $algebraic, $algebraic_args, $psym_out, $usym_out, $dusym_out, $isym_out))
+    ICfcn_args = quote $(Expr(:quote, ICfcn.args[1])) end
+    mdl = :(MRGModelRepr($modfn, $inputCA, $mod_inplace, $ICfcn, $ICfcn_args, $psym_out, $usym_out, $dusym_out, $isym_out))
 
 
     modRaw = quote $(Expr(:quote, modfn)) end
@@ -120,7 +113,7 @@ macro model(md)
 
 
 
-    modmrg = :(MRGModel($pCA, $algebraic, (0.0, 1.0), $mdl, $modExpr, $modOrig, $modRaw))
+    modmrg = :(MRGModel($pCA, $ICfcn, (0.0, 1.0), $mdl, $modExpr, $modOrig, $modRaw))
 
     return modmrg
 end

@@ -1,31 +1,49 @@
 using PMxSim
 using ComponentArrays
 using Parameters: @unpack
-function buildAlgebraic(algebraic, pnames, snames, svals, psym,)
+
+function buildICs(header, pnames, cnames, snames, pvals, cvals, svals, pvec_symbol)
+
+    fname = gensym("ICs")
+    ICfcn = :(function $fname($psym, ) end) # Create a function expression to hold our stuff
+    # Want to add kwargs if they exist
+    for arg in header.args
+        if typeof(arg)!=Symbol && arg.head == :parameters
+            insert!(ICfcn.args[1].args, 2, arg)
+        end
+    end
+
+    ICfcn = MacroTools.striplines(ICfcn)
+    [ICfcn.args[i] = quote end for i in 2:lastindex(ICfcn.args)] # "Blank out" everything but the function call
     pvec = []
+    cvec = []
     svec = []
-    for pnam in pnames
-        push!(pvec, :($pnam = $psym.$pnam))
+    for pn in pnames
+        push!(pvec, :($pn = $pvec_symbol.$pn))
     end
 
-    for (i, snam) in enumerate(snames)
-        sval_i = svals[i]
-        push!(svec, :($snam = $sval_i))
+    for (cn,cv) in zip(cnames,cvals)
+        push!(cvec), :($cn = $cv)
     end
+    for (sn, sv) in zip(snames, svals)
+        push!(svec, :($sn = $sv))
+    end
+    # Add the parameter, constant and state expression vectors to the ICfcn body
+    push!(ICfcn.args[2].args, pvec...)
+    push!(ICfcn.args[2].args, cvec...)
+    push!(ICfcn.args[2].args, svec...)
 
-    algebraic.args[2].args = vcat(pvec, algebraic.args[2].args) # Add parameters at top
-    algebraic.args[2].args = vcat(algebraic.args[2].args, svec) # Add states at bottom
-
-    # Build a line of code to return all the state ICs
     return_line = string("return ComponentArray(")
     for sn in snames
         return_line = string(return_line, "$sn = Float64($sn), ")
     end
-    return_line = string(return_line,")") # Add a closing parenthesis
+    return_line = string(return_line, ")") # Add a closing parenthesis
     return_line = Meta.parse(return_line) # Parse this string to an expression
-    algebraic.args[2].args = vcat(algebraic.args[2].args, [return_line]) # Return this function
-    return algebraic
+    ICfcn.args[2].args = vcat(ICfcn.args[2].args, [return_line])
+    return ICfcn
 end
+
+
 
 function assembleParamArray(pnames, pvals)
     return_line = string("ComponentArray{Float64}(")
@@ -50,7 +68,6 @@ function assembleInputs(snames)
     return return_line
 end
 
-
 function insertParameters(modfn, pnames, pvals, pvec_sym; parse = true)
     modExprs = modfn.args[2] # Ignore function call and grab the block containing everything else
     lastline = 0 # Rembember and return the last line of parameter definitions because we want to insert @constants after this.
@@ -61,14 +78,12 @@ function insertParameters(modfn, pnames, pvals, pvec_sym; parse = true)
             # push!(str_tmp, "$pn") # If you want to use a ComponentArray representation in parsed function
         else
             expr_tmp = :(@mrparam $pn = $pv)
-            insert!(modExprs.args, 1, expr_tmp)
+            # insert!(modExprs.args, 1, expr_tmp)
         end
         insert!(modExprs.args, 1, expr_tmp) # OG
         lastline = i
     end
-    # TODO
-    # Consider switching over to a ComponentArray representation in parsed functions
-    # This is if you want to switch to a ComponentArray representation in parsed function
+    # TODO: Consider switching over to a ComponentArray representation in parsed functions
     # if parse
     #     str_tmp = join(str_tmp,", ")
     #     str_tmp = string("@unpack ", str_tmp, " = $pvec_sym")
@@ -80,11 +95,11 @@ function insertParameters(modfn, pnames, pvals, pvec_sym; parse = true)
 end
 
 
-function insertMain(modfn, mnames, mvals, pline; parse = true)
+function insertConstants(modfn, cnames, cvals, pline; parse = true)
     modExprs = modfn.args[2]
     lastline = pline+1 # Rembember and return the last line of constant definitions because we want to insert @states after this.
-    for (i, (mn, mv)) in enumerate(zip(reverse(mnames),reverse(mvals))) # Flip this so these are inserted in the same order as they are defined
-        expr_tmp = :($mn = $mv)
+    for (i, (cn, cv)) in enumerate(zip(reverse(cnames),reverse(cvals))) # Flip this so these are inserted in the same order as they are defined
+        expr_tmp = :($cn = $cv)
         insert!(modExprs.args, pline+1, expr_tmp)
         lastline = lastline + 1
     end
@@ -107,3 +122,29 @@ function insertStates(modfn, snames, svals, svec_sym, mline; parse = true)
     modfn.args[2] = modExprs
     return modfn, lastline
 end
+
+
+# function buildObserved(algebraic, pnames, snames, onames, psym, usym)
+#     obsExpr = copy(algebraic) # Copy model expression to obsExpr
+#     [obsExpr.args[i] = quote end for i in 2:lastindex(obsExpr.args)] #"Blank out" everything but the function call
+
+#     pvec = []
+#     svec = []
+#     ovec = []
+#     for pnam in pnames
+#         push!(pvec, :($pnam = $psym.$pnam))
+#     end
+
+#     for (i, snam) in enumerate(snames)
+#         sval_i = svals[i]
+#         push!(svec, :($snam = $sval_i))
+#     end
+
+#     algebraic.args[2].args = vcat(pvec, algebraic.args[2].args) # Add parameters at top
+#     algebraic.args[2].args = vcat(algebraic.args[2].args, svec) # Add states at bottom
+
+
+
+
+
+
