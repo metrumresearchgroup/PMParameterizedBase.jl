@@ -58,6 +58,8 @@ macro mrstate(sin)
     return qtsv, snames, svals
 end
 
+
+# TODO: Add an @ignore macro for parsing @ddt if we want to 'ignore', or not include the output of this state in the solution. Might be nice to be able to pare down solution to only things we are interested in.
 macro ddt(din)
     darray = []
     dnames = []
@@ -96,7 +98,7 @@ macro constant(min)
     elseif min.head == :(=)
         marray = [min]
     else
-        error("Unrecognized expression '@main'")
+        error("Unrecognized expression $min '@constant'")
     end
     qts = quote
     end
@@ -114,4 +116,33 @@ macro constant(min)
         end
     end
     return qtsv, mnames, mvals
+end
+
+macro observed(oin)
+    oarray = []
+    onames = []
+    ovals = []
+    if oin.head == :block
+        orray = oin.args
+    elseif oin.head == :(=)
+        orray = [oin]
+    else
+        error("Unrecognized expression $oin in '@observed'")
+    end
+    qts = quote
+    end
+    qtsv = []
+    for o in orray
+        if typeof(o) != LineNumberNode
+            onam = o.args[1]
+            oval = o.args[2]
+            push!(onames, onam)
+            push!(ovals, oval)
+            qt = :($onam = $oval)
+            push!(qtsv, qt)
+        else
+            push!(qtsv, o)
+        end
+    end
+    return qtsv, onames, ovals
 end

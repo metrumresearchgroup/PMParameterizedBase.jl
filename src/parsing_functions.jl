@@ -147,6 +147,29 @@ function parse_constants(modfn)
     end
     return modfn, mnames, mvals
 end
+
+function parse_observed(modfn)
+    onames = []
+    ovals = []
+    for (i, arg_outer) in enumerate(modfn.args)
+        inner_args = []
+        for(j, arg_inner) in enumerate(arg_outer.args)
+            if contains(string(arg_inner), "@observed")
+                mrg_expr, onam_ij, oval_ij = eval(arg_inner)
+                onames = vcat(onames, onam_ij)
+                ovals = vcat(ovals, oval_ij)
+                # We will rebuild the observed expressions in the observed output function, later.
+                deleteat!(arg_outer.args,j)
+            else
+                push!(inner_args, arg_inner)
+            end
+        end
+        if length(inner_args)>0
+            modfn.args[i].args = inner_args
+        end
+    end
+    return modfn, onames, ovals
+end
             
 
 function gather_algebraic(modfn)
@@ -178,6 +201,8 @@ function gather_algebraic(modfn)
     end
     return algebraic, vnames, vvals
 end
+
+
 
 
 
