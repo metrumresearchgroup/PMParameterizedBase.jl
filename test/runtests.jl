@@ -5,10 +5,12 @@ using ComponentArrays
 @testset "Check model basics" begin
     include("testfunctions.jl")
     @test mdl_basic.parameters == ComponentArray{Float64}(p=2.0)
-    @test mdl_basic.model.f(0,ComponentArray(x = 9.0),ComponentArray(p=-3.0,c=-23),0) == -3.0
+    @test mdl_basic.model.f(ComponentArray(x=0),ComponentArray(x = 9.0),ComponentArray(p=-3.0,c=-23),0) == 0.0
     @test mdl_differentorder.parameters == ComponentArray(p = 2.0, z = 3.0, i = 1.0, j = 2.0, k = 3.0, w = 2.0)
-    @test mdl_differentorder.states == ComponentArray(x = 9.0, a = 1.0, b = 2.0, c = 3.0, u = -9.0)
+    @test isa(mdl_differentorder.states, Function)
+    @test mdl_differentorder.states(k=2) == ComponentArray(x = 9.0, a = 1.0, b = 2.0, c = 3.0, u = -9.0)
 end
+
 @testset "Check parameter updates" begin
     p2 = ComponentArray(p = -99.0)
     mdl2 = params(mdl_basic, p2)
@@ -35,7 +37,7 @@ include("test_dups.jl")
     @test mdl_outofplace.model.inplace == false
     @test mdl_kws_iip.model.inplace == true
     @test mdl_kws_oop.model.inplace ==false
-    @test_throws ErrorException("Unrecognized model function protoype: invitro_cytotoxicity(du, u, p, t, q; k = 2, foo = -99) Please separate kwargs with a ';'") test_iip_oop()
+    @test_throws ErrorException("Unrecognized model function protoype: test(du, u, p, t, q; k = 2, foo = -99) Please separate kwargs with a ';'") test_iip_oop()
 end
 
 ## Derivative Tests

@@ -1,7 +1,7 @@
 using PMxSim
 
 function deriv_test1()
-mdl = @macroexpand @model function deriv_test1(du, u, p, t,q)
+mdl = @macroexpand @model function deriv_test1(du, u, p; t,q)
         @mrparam begin
             k1 = 1
             k2 = 3

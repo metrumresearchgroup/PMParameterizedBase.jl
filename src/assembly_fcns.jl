@@ -1,5 +1,6 @@
 using PMxSim
 using ComponentArrays
+using Parameters: @unpack
 function buildAlgebraic(algebraic, pnames, snames, svals, psym,)
     pvec = []
     svec = []
@@ -53,15 +54,27 @@ end
 function insertParameters(modfn, pnames, pvals, pvec_sym; parse = true)
     modExprs = modfn.args[2] # Ignore function call and grab the block containing everything else
     lastline = 0 # Rembember and return the last line of parameter definitions because we want to insert @constants after this.
+    str_tmp = []
     for (i, (pn,pv)) in enumerate(zip(reverse(pnames),reverse(pvals))) # Flip this so these are inserted in the same order as they are defined
         if parse
             expr_tmp = :($pn = $pvec_sym.$pn)
+            # push!(str_tmp, "$pn") # If you want to use a ComponentArray representation in parsed function
         else
-            expr_tmp = :($pn = $pv)
+            expr_tmp = :(@mrparam $pn = $pv)
+            insert!(modExprs.args, 1, expr_tmp)
         end
-        insert!(modExprs.args, 1, expr_tmp)
+        insert!(modExprs.args, 1, expr_tmp) # OG
         lastline = i
     end
+    # TODO
+    # Consider switching over to a ComponentArray representation in parsed functions
+    # This is if you want to switch to a ComponentArray representation in parsed function
+    # if parse
+    #     str_tmp = join(str_tmp,", ")
+    #     str_tmp = string("@unpack ", str_tmp, " = $pvec_sym")
+    #     insert!(modExprs.args, 1, Meta.parse(str_tmp))
+    #     modExprs = Meta.parse(str_tmp)
+    # end 
     modfn.args[2] = modExprs
     return modfn, lastline
 end
@@ -86,7 +99,7 @@ function insertStates(modfn, snames, svals, svec_sym, mline; parse = true)
         if parse
             expr_tmp = :($sn = $svec_sym.$sn)
         else
-            expr_tmp = :($sn = $sv)
+            expr_tmp = :(@mrstate $sn = $sv)
         end
         insert!(modExprs.args, mline+1, expr_tmp)
         lastline = lastline + 1

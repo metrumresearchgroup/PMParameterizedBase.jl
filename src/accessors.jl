@@ -5,6 +5,20 @@ using PMxSim
     if sym === :parsed
         ex = getfield(obj,:raw)
         return MacroTools.striplines(ex)
+    elseif sym == :states
+        ms = collect(methods(obj.model.ICfcn))[1]
+        kwargs = Base.kwarg_decl(ms)
+        if length(kwargs) > 0
+            header = obj.model.__ICheader
+            fcncall = copy(header)
+            fcncall.args[3] = obj.parameters
+            fcncall.args[1] = obj.model.ICfcn
+            out = :($(header.args[1])($(header.args[2])) = $fcncall)
+            out = eval(out)
+        else
+            out = obj.model.ICfcn(obj.parameters)
+        end
+        return out
     else # fallback to getfield
         return getfield(obj, sym)
     end
@@ -39,6 +53,34 @@ function params(model::MRGModel, params::ComponentArray)
     end
     return mdl_copy
 end
+
+
+# Write a function to get states. If no kwargs are defined, calculate ICs, if kwargs with default values are defined, use those, otherwise expect a user input.
+
+
+# @inline function Base.getproperty(obj::MRGModel, sym::Symbol)
+#     if sym == :states
+#         ms = collect(methods(obj.model.ICfcn))[1]
+#         kwargs = Base.kwarg_decl(ms)
+#         if length(kwargs) > 0
+#             header = obj.model.__ICheader
+#             fcncall = copy(header)
+#             fcncall.args[3] = obj.parameters
+#             out = quote
+#                 $(header.args[1])($(header.args[2])) = $fcncall
+#             end
+#             out = eval(out)
+#         else
+#             out = obj.model.ICfcn(obj.model.parameters)
+#         end
+#         return out
+#     end
+# end
+
+            # return obj.model.ICfc(p = obj.model.parameters)
+#             return obj.model.ICfcn(p = obj.model.parameters, )
+#         else
+#             return g
 
 
 
