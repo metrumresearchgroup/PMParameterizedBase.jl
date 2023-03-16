@@ -2,7 +2,7 @@ using PMxSim
 using ComponentArrays
 using Parameters: @unpack
 
-function buildICs(header, pnames, cnames, snames, pvals, cvals, svals, pvec_symbol)
+function buildICs(header, pnames, cnames, snames, cvals, svals, pvec_symbol)
 
     fname = gensym("ICs")
     ICfcn = :(function $fname($psym, ) end) # Create a function expression to hold our stuff
@@ -124,26 +124,34 @@ function insertStates(modfn, snames, svals, svec_sym, mline; parse = true)
 end
 
 
-# function buildObserved(algebraic, pnames, snames, onames, psym, usym)
-#     obsExpr = copy(algebraic) # Copy model expression to obsExpr
-#     [obsExpr.args[i] = quote end for i in 2:lastindex(obsExpr.args)] #"Blank out" everything but the function call
-
-#     pvec = []
-#     svec = []
-#     ovec = []
-#     for pnam in pnames
-#         push!(pvec, :($pnam = $psym.$pnam))
-#     end
-
-#     for (i, snam) in enumerate(snames)
-#         sval_i = svals[i]
-#         push!(svec, :($snam = $sval_i))
-#     end
-
-#     algebraic.args[2].args = vcat(pvec, algebraic.args[2].args) # Add parameters at top
-#     algebraic.args[2].args = vcat(algebraic.args[2].args, svec) # Add states at bottom
-
-
+function buildObserved(modfn, onames, dusym)
+    Obsfcn_name = gensym(:Obs)
+    Obsfcn = :(function $Obsfcn_name() end)
+    if modfn.args[1].head == :call
+        push!(Obsfcn.args[1].args, modfn.args[1].args[2:end]...)
+    elseif modfn.args[1].head == :tuple
+        push!(Obsfcn.args[1].args, modfn.args[1].args...)
+    end
+    for ex in modfn.args[2].args
+        if typeof(ex) == LineNumberNode
+            push!(Obsfcn.args[2].args, ex)
+        elseif typeof(ex.args[1]) == Symbol
+            push!(Obsfcn.args[2].args, ex)
+        elseif ex.args[1].args[1] == dusym
+            continue
+        else
+            push!(Obsfcn.args[2].args,ex)
+        end
+    end
+    return_line = string("return ComponentArray(")
+    for on in onames
+        return_line = string(return_line, "$on = Float64($on), ")
+    end
+    return_line = string(return_line, ")") # Add a closing parenthesis
+    return_line = Meta.parse(return_line) # Parse this string to an expression
+    Obsfcn.args[2].args = vcat(Obsfcn.args[2].args, [return_line])
+    return Obsfcn
+end
 
 
 

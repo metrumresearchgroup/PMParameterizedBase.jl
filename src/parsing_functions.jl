@@ -160,6 +160,9 @@ function parse_observed(modfn)
                 ovals = vcat(ovals, oval_ij)
                 # We will rebuild the observed expressions in the observed output function, later.
                 deleteat!(arg_outer.args,j)
+                for ex in mrg_expr
+                    push!(inner_args, ex)
+                end
             else
                 push!(inner_args, arg_inner)
             end

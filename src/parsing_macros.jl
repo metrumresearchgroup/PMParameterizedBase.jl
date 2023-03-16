@@ -122,12 +122,13 @@ macro observed(oin)
     oarray = []
     onames = []
     ovals = []
+    # TODO: Need to develop recursive way to go through all arguments and extract observed names and values. This will allow the code to handle if/else expressions, loops, etc. 
     if oin.head == :block
         orray = oin.args
     elseif oin.head == :(=)
         orray = [oin]
     else
-        error("Unrecognized expression $oin in '@observed'")
+        error("Unrecognized expression $oin in '@observed.'")
     end
     qts = quote
     end

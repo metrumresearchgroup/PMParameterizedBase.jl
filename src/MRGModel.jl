@@ -7,7 +7,7 @@ Base.@kwdef struct MRGModelRepr
     continuousInputs::ComponentArray{Float64} = ComponentArray{Float64}()
     inplace::Bool = true
     ICfcn::Function = () -> ()
-    __ICheader::Expr = :()
+    Obsfcn::Function = () -> ()
     __parameter_symbol::Symbol = Symbol()
     __state_symbol::Symbol = Symbol()
     __deriv_symbol::Symbol = Symbol()
@@ -35,9 +35,6 @@ macro model(md)
     modfn, pvec_symbol, pnames, pvals = parse_parameters(modfn)
     parameter_repeat(pnames)
     parameter_vec_rename(pnames, pvec_symbol)
-    modfn = MacroTools.postwalk(modfn) do ex 
-        ex == psym ? pvec_symbol : ex
-    end
     pCA = assembleParamArray(pnames, pvals)
 
     ## Parse Constants
@@ -50,20 +47,11 @@ macro model(md)
     variable_parameter_overlap(pnames, snames, pvec_symbol, uvec_symbol)
     constant_state_overlap(cnames, snames)
 
-
-    # We need to grab a copy of the model here, before we parse the derivatives so they can be ignored when we look for algebraic expressions
-    modfn_alg = copy(modfn)
     ## Parse Derivatives
     modfn, dvec_symbol, dnames, dvals = parse_derivatives(modfn)
-    # Replace internal symbol with model symbol for states and derivatives
-    modfn = MacroTools.postwalk(modfn) do ex 
-        ex == usym ? uvec_symbol : ex
-    end
-    modfn = MacroTools.postwalk(modfn) do ex
-        ex == dusym ? dvec_symbol : ex
-    end
-    derivative_repeat(dnames)
-    derivative_exists(dnames, snames)
+
+    ## Parse Observed
+    modfn, onames, ovals = parse_observed(modfn)
 
 
     # Need to add input vector to default arguments.
@@ -89,12 +77,29 @@ macro model(md)
     modfn, mline = insertConstants(modfn, cnames, cvals, pline; parse = true)
     modfn, sline = insertStates(modfn, snames, svals, uvec_symbol, mline; parse = true)
 
-
-
-    ICfcn = buildICs(modheader, pnames, cnames, snames, pvals, cvals, svals, pvec_symbol)
+    ICfcn = buildICs(modheader, pnames, cnames, snames, cvals, svals, pvec_symbol)
     ICfcn = MacroTools.postwalk(ICfcn) do ex
         ex == psym ? pvec_symbol : ex
     end
+
+    Obsfcn = buildObserved(modfn, onames, dusym) # Build the function to calculate observed variables
+
+
+
+
+    # Replace internal symbols with actual symbols
+    modfn = MacroTools.postwalk(modfn) do ex 
+        ex == psym ? pvec_symbol : ex
+    end
+    
+    modfn = MacroTools.postwalk(modfn) do ex 
+    ex == usym ? uvec_symbol : ex
+    end
+    modfn = MacroTools.postwalk(modfn) do ex
+        ex == dusym ? dvec_symbol : ex
+    end
+    derivative_repeat(dnames)
+    derivative_exists(dnames, snames)
 
 
     psym_out = quote $(Expr(:quote, pvec_symbol)) end
@@ -102,7 +107,7 @@ macro model(md)
     dusym_out = quote $(Expr(:quote, dvec_symbol)) end
     isym_out = quote $(Expr(:quote, inputsym)) end
     ICfcn_args = quote $(Expr(:quote, ICfcn.args[1])) end
-    mdl = :(MRGModelRepr($modfn, $inputCA, $mod_inplace, $ICfcn, $ICfcn_args, $psym_out, $usym_out, $dusym_out, $isym_out))
+    mdl = :(MRGModelRepr($modfn, $inputCA, $mod_inplace, $ICfcn, $Obsfcn, $psym_out, $usym_out, $dusym_out, $isym_out))
 
 
     modRaw = quote $(Expr(:quote, modfn)) end
