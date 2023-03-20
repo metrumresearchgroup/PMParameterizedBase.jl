@@ -148,6 +148,11 @@ function parse_constants(modfn)
     return modfn, cnames, cvals
 end
 
+function parse_constants2(modfn)
+    return modfn
+end
+
+
 function parse_observed(modfn)
     onames = []
     ovals = []

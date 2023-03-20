@@ -1,33 +1,55 @@
 using PMxSim
 
-macro mrparam(pin)
-    parray = []
-    pnames = []
-    pvals = []
-    if pin.head == :block
-        parray = pin.args
-    elseif pin.head == :(=)
-        parray = [pin]
+# macro mrparam(pin)
+#     parray = []
+#     pnames = []
+#     pvals = []
+#     println(pin)
+#     if pin.head == :block
+#         parray = pin.args
+#     elseif pin.head == :(=)
+#         parray = [pin]
+#     else
+#         error("Unrecognized parameter definition")
+#     end
+#     qts = quote
+#           end
+#     qtsv = []
+#     for p in parray
+#         if typeof(p) != LineNumberNode
+#             pnam = p.args[1]
+#             pval = p.args[2]
+#             push!(pnames, pnam)
+#             push!(pvals, pval)
+#             qt = :($pnam = $psym.$pnam)
+#             push!(qtsv, qt)
+#         else
+#             push!(qtsv, p)
+#         end
+#     end
+#     return qtsv, pnames, pvals
+# end
+
+function walkParam(x)
+    retcode = false
+    if isexpr(x) && (@capture(x, _ = _) || @capture(x, _ .= _) || @capture(x, @__dot__ _ = _ )) # Make sure x is an expression, and then check for parameter assigment with "=", ".=" or "@. parameter = value"
+        pn = x.args[1]
+        pv = x.args[2]
+        out = :($pn = $psym.$pn)
+        :(push!(pnames, pn))
+        :(push!(pvals, pv))
+        return out
     else
-        error("Unrecognized parameter definition")
+        return x
     end
-    qts = quote
-          end
-    qtsv = []
-    for p in parray
-        if typeof(p) != LineNumberNode
-            pnam = p.args[1]
-            pval = p.args[2]
-            push!(pnames, pnam)
-            push!(pvals, pval)
-            qt = :($pnam = $psym.$pnam)
-            push!(qtsv, qt)
-        else
-            push!(qtsv, p)
-        end
-    end
-    return qtsv, pnames, pvals
 end
+
+macro mrparam(min)
+    out = MacroTools.postwalk(x -> walkParam(x), min)
+    # pblock = out
+    return out#, pnames, pvals
+end
+
 
 macro mrstate(sin)
     sarray = []

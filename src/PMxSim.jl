@@ -16,6 +16,9 @@ usym = gensym()
 dusym = gensym()
 psym = gensym()
 tsym = gensym()
+# pnames = Vector{Symbol}()
+# pvals = Vector{Union{Number,AbstractArray}}()
+# pblock::Expr = :()
 
 # Create a unique variable for continuous inputs
 inputsym = gensym(:input)

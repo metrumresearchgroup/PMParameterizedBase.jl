@@ -34,6 +34,8 @@ macro model(md)
 
     ## Parse Parameters
     modfn, pvec_symbol, pnames, pvals = parse_parameters(modfn)
+    # println(pnames)
+    # println(pvals)
     parameter_repeat(pnames)
     parameter_vec_rename(pnames, pvec_symbol)
     pCA = assembleParamArray(pnames, pvals)
@@ -122,4 +124,11 @@ macro model(md)
     modmrg = :(MRGModel($pCA, $ICfcn, (0.0, 1.0), $mdl, $modExpr, $modOrig, $modRaw))
 
     return modmrg
+end
+
+
+macro model2(md)
+function foo($md)
+    println(md)
+end
 end
