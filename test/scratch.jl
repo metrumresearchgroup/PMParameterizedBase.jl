@@ -1,18 +1,12 @@
 using Revise
 using PMxSim
 
-mdl_basic = PMxSim.@model2 function test(du, u, params, t)
-    println(pnames)
-    # @mrparam if u == 0
+ mdl_basic = @model function test(du, u, params, t)
     @mrparam begin
         p = 2
         b = 3
     end
-    # @mrstate x = 9
-    # p
-    # @ddt x = 0.0
-    println(b)
-end
+end;
 
 
 
