@@ -93,31 +93,16 @@ function parameter_vec_rename(pnames, pvec_symbol)
     end
 end
 
-function du_inplace(md::Expr)
-    header = copy(md.args[1])
-    is_inplace = true
-    numkwargs = 0
-    for (i,arg) in enumerate(header.args)
-        if typeof(arg) != Symbol && arg.head == :parameters
-            numkwargs += 1
+function checkArgs(args,kwargs)
+    if (length(args)) < 4
+        if length(args)>0
+            error(string.("Missing arguments. Function call should include (du, u, p, t; kwargs), only. Current arguments: ", join(args, ", "," and")))
+        else
+            error("No arguments provided. Function call should be (du, u, p, t)")
         end
+    elseif (length(args)) > 4
+        error(string.("Too many arguments. Function call should include (du, u, p, t), only. Current arguments: ", join(args, ", "," and"), ". Please separate kwargs with a ';'"))
     end
-    isanon = 0
-    if md.args[1].head == :call
-        isanon = 0
-    elseif md.args[1].head == :tuple
-        isanon = 1
-    else
-        error("Unknown argument error")
-    end
-    if (length(header.args)-numkwargs) == (5-isanon)
-        is_inplace = true
-    elseif (length(header.args)-numkwargs) == (4-isanon)
-        is_inplace = false
-    else
-        error("Unrecognized model function protoype: $header Please separate kwargs with a ';'")
-    end
-    return is_inplace, numkwargs
 end
 
 

@@ -19,8 +19,8 @@ end
 
 CAorFcn = Union{ComponentArray{Float64}, Function}
 Base.@kwdef mutable struct MRGModel
-    parameters::ComponentArray{Float64} = ComponentArray{Float64}()
-    # states::CAorFcn = ComponentArray{Float64}()
+    parameters::CAorFcn = ComponentArray{Float64}()
+    # states::CAorFcn m= ComponentArray{Float64}()
     # tspan::Tuple = (0.0, 1.0)
     model::MRGModelRepr = MRGModelRepr()
     # parsed::Expr = quote end
@@ -30,10 +30,12 @@ end
 
 
 macro model(md)
-    # Parse parametesr
-    psym, pnames, pvals, pfcn = parseParameters(md)
+    # Parse header to get args and kwargs
+    args, kwargs, f, arguments, body = parseHeader(md)
+    # Parse parameters
+    psym, pnames, pfcn = parseParameters(md, kwargs)
     mdl = :(MRGModelRepr($pfcn))
-
-    modmrg = :(MRGModel($pfcn(), mdl))
+    modmrg = :(MRGModel(parameters = $mdl.Pfcn, model = $mdl))
+    return modmrg
 end
 

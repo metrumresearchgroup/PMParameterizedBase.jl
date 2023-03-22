@@ -1,28 +1,40 @@
 using MacroTools
 using PMxSim
 # @inline Base.getproperty(obj::MRGModel, s::Symbol) = _getindex(Base.maybeview, x, Val(s))
-# @inline function Base.getproperty(obj::MRGModel, sym::Symbol)
-#     if sym === :parsed
-#         ex = getfield(obj,:raw)
-#         return MacroTools.striplines(ex)
-#     elseif sym == :states
-#         ms = collect(methods(obj.model.ICfcn))[1]
-#         kwargs = Base.kwarg_decl(ms)
-#         if length(kwargs) > 0
-#             header = obj.model.__ICheader
-#             fcncall = copy(header)
-#             fcncall.args[3] = obj.parameters
-#             fcncall.args[1] = obj.model.ICfcn
-#             out = :($(header.args[1])($(header.args[2])) = $fcncall)
-#             out = eval(out)
-#         else
-#             out = obj.model.ICfcn(obj.parameters)
-#         end
-#         return out
-#     else # fallback to getfield
-#         return getfield(obj, sym)
-#     end
-# end
+
+
+
+
+@inline function Base.getproperty(obj::MRGModel, sym::Symbol)
+    if sym === :parsed
+        ex = getfield(obj,:raw)
+        return MacroTools.striplines(ex)
+    elseif sym == :states
+        ms = collect(methods(obj.model.ICfcn))[1]
+        kwargs = Base.kwarg_decl(ms)
+        if length(kwargs) > 0
+            header = obj.model.__ICheader
+            fcncall = copy(header)
+            fcncall.args[3] = obj.parameters
+            fcncall.args[1] = obj.model.ICfcn
+            out = :($(header.args[1])($(header.args[2])) = $fcncall)
+            out = eval(out)
+        else
+            out = obj.model.ICfcn(obj.parameters)
+        end
+        return out
+    elseif sym == :parameters
+        ms = collect(methods(obj.model.Pfcn))[1]
+        kwargs = Base.kwarg_decl(ms)
+        if length(kwargs) > 0
+            out = obj.model.Pfcn
+        else
+            out = obj.model.Pfcn()
+        end
+    else # fallback to getfield
+        return getfield(obj, sym)
+    end
+end
 
 
 # " Function to show parsed model with references to original definition and line numbers"

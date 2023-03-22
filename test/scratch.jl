@@ -1,34 +1,38 @@
 using Revise
 using PMxSim
 
- mdl_basic = @model function test(du, u, params, t)
+ mdl_basic = @model function test(du, u, params, t; a = 4)
     @mrparam begin
+        # if a<4
+        #     p = 2
+        # else
+        #     p = 3
+        # end
         p = 2
-        b = 3
+        p = 3
+    end
+
+    @mrparam z = 3
+    @mrparam begin
+        
+        q = 3
     end
 end;
+mdl_basic.parameters
+
+
+testfun = :(function foo(du, u, params, t; a, b)
+a + 9
+end)
+# @capture(testfun, function f_(args__) body_ end )
+@capture(testfun, (f_(args__) = body_) | (function f_(args__) body_ end) | (function (args__) body_ end))
 
 
 
-foo = :(if u == 0
-    #= /Users/knabt/.julia/dev/PMxSim/test/scratch.jl:6 =#
-    p = 2
-else
-    #= /Users/knabt/.julia/dev/PMxSim/test/scratch.jl:8 =#
-    p = 3
+testmac = :(@mrparam begin
+    a = 2
+    b = 3
 end)
 
-# MacroTools.postwalk(x -> (println(typeof(x)); println(x); @capture(x, a_ = b_)), foo)
-bar = MacroTools.postwalk(x -> ((isexpr(x) && @capture(x, a_ = b_)) ? push!(list, x) : x), foo)
-
-
-function get_ex_symbols2(ex)
-    list = []
-    walk!(list) = ex -> begin
-       println(ex)
-       ex isa Symbol && push!(list, ex)
-       ex isa Expr && ex.head == :(=) && map(walk!(list), ex.args)
-       list
-    end
-    Set{Symbol}(walk!([])(ex))
-end
+testmac2 = :(@mrparam j = 0)
+@capture(testmac2, @mrparam body_)

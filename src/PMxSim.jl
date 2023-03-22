@@ -1,9 +1,9 @@
 module PMxSim
 using MacroTools
+using ComponentArrays
 
 # Write your package code here.
-export @model
-export @mrparam
+
 # export @mrstate
 # export params!
 # export params
@@ -11,9 +11,16 @@ export @mrparam
 
 include("parseParameters.jl")
 include("MRGModel.jl")
+include("parseHeader.jl")
+include("checks.jl")
+include("accessors.jl")
 macro mrparam(min)
-    return min
+    return esc(min)
 end
+
+export @model
+export @mrparam
+export ComponentArray
 
 
 
