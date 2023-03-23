@@ -7,6 +7,8 @@ Base.@kwdef struct MRGModelRepr
 #     continuousInputs::ComponentArray{Float64} = ComponentArray{Float64}()
 #     inplace::Bool = true
       Pfcn::Function = () -> ()
+      Cfcn::Function = () -> ()
+      __Header::Vector{Any} = Vector{Any}()
 #     ICfcn::Function = () -> ()
 #     Obsfcn::Function = () -> ()
 #     __ICheader::Expr = :()
@@ -32,10 +34,17 @@ end
 macro model(md)
     # Parse header to get args and kwargs
     args, kwargs, f, arguments, body = parseHeader(md)
-    # Parse parameters
-    psym, pnames, pfcn = parseParameters(md, kwargs)
-    mdl = :(MRGModelRepr($pfcn))
-    modmrg = :(MRGModel(parameters = $mdl.Pfcn, model = $mdl))
-    return modmrg
+    pnames, static_names, vnames, initBlock = parseInit(md, arguments)
+    # pnames, pfcn = parseStatic(md, arguments, kwargs, Symbol("@mrparam"))
+    # cnames, cfcn = parseStatic(md, arguments, kwargs, Symbol("@constant"))
+
+    # mdl = :(MRGModelRepr($(esc(pfcn)), $(esc(cfcn)), $arguments))
+    # modmrg = :(MRGModel(parameters = $mdl.Pfcn, model = $mdl))
+    # return modmrg
+    # println(pnames)
+    # println(static_names)
+    # println(vnames)
+    # println(initBlock)
+    return initBlock
 end
 

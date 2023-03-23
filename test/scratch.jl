@@ -2,24 +2,33 @@ using Revise
 using PMxSim
 
  mdl_basic = @model function test(du, u, params, t; a = 4)
-    @mrparam begin
+    @init begin
         # if a<4
         #     p = 2
         # else
         #     p = 3
         # end
-        p = 2
-        p = 3
-    end
+        q = 8
+        j = 1
+        k = 2
+        fooey =9
+        @parameter begin 
+            p = 2
+            z = 9
+            q = 3
+        end
 
-    @mrparam z = 3
-    @mrparam begin
+        @variable begin
+            x = 2
+            y = 4
+        end
         
-        q = 3
     end
+    l = 2
+    j = 3
 end;
 mdl_basic.parameters
-
+mdl_basic.model.Cfcn(0,0,0,0;a=4)
 
 testfun = :(function foo(du, u, params, t; a, b)
 a + 9

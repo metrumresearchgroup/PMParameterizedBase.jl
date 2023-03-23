@@ -1,6 +1,5 @@
 function parseHeader(md)
     @capture(md, function f_(arguments__) body_ end)
-    println(arguments)
     kwargs = Vector{Expr}()
     args = Vector{Symbol}()
     for arg in arguments

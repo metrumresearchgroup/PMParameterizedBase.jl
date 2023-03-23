@@ -105,4 +105,30 @@ function checkArgs(args,kwargs)
     end
 end
 
+function removeDefs(x)
+    if isexpr(x) && x.head == :macrocall && x.args[1] == Symbol("@init")
+        return nothing
+    else
+        return x
+    end
+end
+
+function checkDefs(x)
+    if isexpr(x) && x.head == :macrocall && x.args[1] == Symbol("@parameter")
+        error("@parameter definiton outside of @init")
+    elseif isexpr(x) && x.head == :macrocall && x.args[1] == Symbol("@variable")
+        error("@variable definition outside of @init")
+    elseif isexpr(x) && x.head == :macrocall && x.args[1] == Symbol("@constant")
+        error("@constant definition outside of @init")
+    end
+    return x
+end
+
+        
+function walkDefs(modfn)
+    out = MacroTools.postwalk(x -> removeDefs(x), modfn)
+    println(out)
+    MacroTools.postwalk(x -> checkDefs(x), out)
+end
+
 

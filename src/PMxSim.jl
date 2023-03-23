@@ -9,17 +9,20 @@ using ComponentArrays
 # export params
 # export show_parsed
 
-include("parseParameters.jl")
+# include("parseStatic.jl")
+include("parseInit.jl")
 include("MRGModel.jl")
 include("parseHeader.jl")
 include("checks.jl")
 include("accessors.jl")
-macro mrparam(min)
+
+macro parameter(min)
     return esc(min)
 end
 
+
 export @model
-export @mrparam
+export @parameter
 export ComponentArray
 
 
