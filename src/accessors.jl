@@ -2,9 +2,6 @@ using MacroTools
 using PMxSim
 # @inline Base.getproperty(obj::MRGModel, s::Symbol) = _getindex(Base.maybeview, x, Val(s))
 
-
-
-
 @inline function Base.getproperty(obj::MRGModel, sym::Symbol)
     if sym === :parsed
         ex = getfield(obj,:raw)
@@ -24,12 +21,13 @@ using PMxSim
         end
         return out
     elseif sym == :parameters
-        ms = collect(methods(obj.model.Pfcn))[1]
+        ms = collect(methods(obj.model.initFcn))[1]
         kwargs = Base.kwarg_decl(ms)
         if length(kwargs) > 0
-            out = obj.model.Pfcn
+            out = (;kwargs...) -> obj.model.initFcn(;kwargs...).p
+            # out = obj.model.initFcn.p
         else
-            out = obj.model.Pfcn()
+            out = obj.model.initFcn().p
         end
     else # fallback to getfield
         return getfield(obj, sym)

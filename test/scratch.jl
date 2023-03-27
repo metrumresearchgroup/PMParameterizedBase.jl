@@ -14,6 +14,7 @@ using PMxSim
         fooey =9
         @parameter begin 
             p = 2
+            a = 5
             z = 9
             q = 3
         end
@@ -27,6 +28,7 @@ using PMxSim
     l = 2
     j = 3
 end;
+mdl_basic
 mdl_basic.parameters
 mdl_basic.model.Cfcn(0,0,0,0;a=4)
 

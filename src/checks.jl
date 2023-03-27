@@ -125,9 +125,8 @@ function checkDefs(x)
 end
 
         
-function walkDefs(modfn)
+function walkAndCheckDefs(modfn)
     out = MacroTools.postwalk(x -> removeDefs(x), modfn)
-    println(out)
     MacroTools.postwalk(x -> checkDefs(x), out)
 end
 

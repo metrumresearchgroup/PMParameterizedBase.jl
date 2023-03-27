@@ -1,13 +1,11 @@
 using PMxSim
 using Base
 using ComponentArrays
-
 Base.@kwdef struct MRGModelRepr
 #     f::Function = () -> ()
 #     continuousInputs::ComponentArray{Float64} = ComponentArray{Float64}()
 #     inplace::Bool = true
-      Pfcn::Function = () -> ()
-      Cfcn::Function = () -> ()
+      initFcn::Function = () -> ()
       __Header::Vector{Any} = Vector{Any}()
 #     ICfcn::Function = () -> ()
 #     Obsfcn::Function = () -> ()
@@ -22,7 +20,7 @@ end
 CAorFcn = Union{ComponentArray{Float64}, Function}
 Base.@kwdef mutable struct MRGModel
     parameters::CAorFcn = ComponentArray{Float64}()
-    # states::CAorFcn m= ComponentArray{Float64}()
+    states::CAorFcn = ComponentArray{Float64}()
     # tspan::Tuple = (0.0, 1.0)
     model::MRGModelRepr = MRGModelRepr()
     # parsed::Expr = quote end
@@ -35,16 +33,12 @@ macro model(md)
     # Parse header to get args and kwargs
     args, kwargs, f, arguments, body = parseHeader(md)
     pnames, static_names, vnames, initBlock = parseInit(md, arguments)
-    # pnames, pfcn = parseStatic(md, arguments, kwargs, Symbol("@mrparam"))
-    # cnames, cfcn = parseStatic(md, arguments, kwargs, Symbol("@constant"))
+    initFcn = buildInit(initBlock, kwargs, pnames, vnames)
+    mdl = :(MRGModelRepr($initFcn, $arguments))
+    modmrg = :(MRGModel(parameters = $initFcn, states = $initFcn, model = $mdl))
 
-    # mdl = :(MRGModelRepr($(esc(pfcn)), $(esc(cfcn)), $arguments))
-    # modmrg = :(MRGModel(parameters = $mdl.Pfcn, model = $mdl))
-    # return modmrg
-    # println(pnames)
-    # println(static_names)
-    # println(vnames)
-    # println(initBlock)
-    return initBlock
+    # Check if kwargs are used to in initFcn
+    usedKwargs = kwargsUsedInInit(initFcn, kwargs)
+    return modmrg
 end
 

@@ -10,9 +10,13 @@ using ComponentArrays
 # export show_parsed
 
 # include("parseStatic.jl")
-include("parseInit.jl")
 include("MRGModel.jl")
 include("parseHeader.jl")
+include("parseInit.jl")
+include("walkInit.jl")
+include("walkParams.jl")
+include("walkVariables.jl")
+include("assembly_fcns.jl")
 include("checks.jl")
 include("accessors.jl")
 
@@ -20,9 +24,19 @@ macro parameter(min)
     return esc(min)
 end
 
+macro init(min)
+    return esc(min)
+end
+
+macro variable(min)
+    return esc(min)
+end
+
 
 export @model
 export @parameter
+export @init
+export @variable
 export ComponentArray
 
 
