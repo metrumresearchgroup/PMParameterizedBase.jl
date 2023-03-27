@@ -28,12 +28,28 @@ function checkDefs(x)
     end
     return x
 end
-
         
 function walkAndCheckDefs(modfn)
-    out = MacroTools.postwalk(x -> removeDefs(x), modfn)
-    MacroTools.postwalk(x -> checkDefs(x), out)
+    noInit = MacroTools.postwalk(x -> removeDefs(x), modfn)
+    MacroTools.postwalk(x -> checkDefs(x), noInit)
 end
+
+
+
+function checkDdtInInit(x)
+    # Check for @ddt macros in @init
+    if isexpr(x) && x.head == :macrocall && x.args[1] == Symbol("@ddt")
+        error("Derivative (@ddt) definition found inside @init. This is not supported.")
+    end
+    return x
+end
+
+function walkAndCheckDdt(init_block)
+    # Check for @ddt macros in @init
+    MacroTools.postwalk(x -> checkDdtInInit(x), init_block)
+end
+    
+
 
 
 

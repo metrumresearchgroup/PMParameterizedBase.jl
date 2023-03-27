@@ -6,7 +6,9 @@ function parseInit(modfn, arguments)
     static_ignore = Vector{Symbol}() # Use the static ignore so warnings only show once.
     initBlock = Vector{Expr}() # Create a vector to hold the expressions contained within an @init block
     MacroTools.postwalk(x -> walkInitMacro(x, pnames, static_names, vnames, static_ignore, initBlock), modfn) # Populate these vectors by walking through the expression tree
-    return pnames, static_names, vnames, Expr(:block, initBlock...) # Return all variables
+    initBlock = Expr(:block, initBlock...)
+    walkAndCheckDdt(initBlock) # Make sure there are no derivative (@ddt) defintions in the @init block
+    return pnames, static_names, vnames, initBlock # Return all variables
 end
 
 
@@ -42,7 +44,6 @@ function kwargsUsedInInit(initBlock, kwargs_in)
     rmkwrhs = MacroTools.postwalk(x -> rmLHSKwargs(x, kwsyms), initBlock)
     # Check if any kwarg variables show up anywhere in the init function after removing reassignment.
     MacroTools.postwalk(x -> walkKwArgs(x, kwsyms, usedKwargs), rmkwrhs)
-    println(rmkwrhs)
     # Return the vector of kwarguments that are used in the initfunction
     return unique(usedKwargs)
 end

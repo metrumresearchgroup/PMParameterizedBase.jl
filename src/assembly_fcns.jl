@@ -17,7 +17,7 @@ function buildInit(initBlock, kwargs, pnames, vnames, static_names; useKwargs = 
     vCA = string("ComponentArray($vCA_elements)")
     constantCA = string("ComponentArray($constantCA_elements)")
     
-    return_line = string("return (p = $pCA, u = $vCA, static_vars = $constanctCA)")
+    return_line = string("return (p = $pCA, u = $vCA, static_vars = $constantCA)")
     return_line = Meta.parse(return_line)
     initFcn.args[2].args = vcat(initFcn.args[2].args, [return_line])
     return initFcn

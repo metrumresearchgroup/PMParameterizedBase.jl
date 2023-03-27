@@ -13,9 +13,11 @@ using ComponentArrays
 include("MRGModel.jl")
 include("parseHeader.jl")
 include("parseInit.jl")
+include("parseBody.jl")
 include("walkInit.jl")
 include("walkParams.jl")
 include("walkVariables.jl")
+include("walkBody.jl")
 include("assembly_fcns.jl")
 include("checks.jl")
 include("accessors.jl")
@@ -29,6 +31,10 @@ macro init(min)
 end
 
 macro variable(min)
+    return esc(min)
+end
+
+macro ddt(min)
     return esc(min)
 end
 

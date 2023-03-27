@@ -22,6 +22,7 @@ macro model(md)
     pnames, static_names, vnames, initBlock = parseInit(md, arguments)
 
 
+
     # Check if kwargs are used to in initFcn
     usedKwargs = kwargsUsedInInit(initBlock, kwargs)
     if length(usedKwargs) > 0
@@ -40,7 +41,9 @@ macro model(md)
         params = :($initFcn)
         u = :($initFcn)
     end
-    
+
+    body, derivatives, dynamic_names = parseBody(md, args)
+    println(body)
 
     mdl = :(MRGModelRepr($initFcn, $arguments))
     modmrg = :(MRGModel(parameters = $params, states = $u, model = $mdl))

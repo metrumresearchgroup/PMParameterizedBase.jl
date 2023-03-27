@@ -26,6 +26,11 @@ using PMxSim
     end
     l = 2
     j = 3
+    @ddt begin
+        y = 2
+        z = 2
+    end
+    x = 8.2
 end;
 mdl_basic
 mdl_basic.parameters()
