@@ -6,7 +6,7 @@ function parseInit(modfn, arguments)
     static_ignore = Vector{Symbol}() # Use the static ignore so warnings only show once.
     initBlock = Vector{Expr}() # Create a vector to hold the expressions contained within an @init block
     MacroTools.postwalk(x -> walkInitMacro(x, pnames, static_names, vnames, static_ignore, initBlock), modfn) # Populate these vectors by walking through the expression tree
-    return pnames, static_names, vnames, initBlock # Return all variables
+    return pnames, static_names, vnames, Expr(:block, initBlock...) # Return all variables
 end
 
 
@@ -31,22 +31,18 @@ end
 
 
 
-function kwargsUsedInInit(initFcn, kwargs_in)
+function kwargsUsedInInit(initBlock, kwargs_in)
     kwsyms = Vector{Symbol}() # Create a vector to hold all of the kwarg symbols
     usedKwargs = Vector{Symbol}() # Create a vector to hold kwargs that are used in the init function
 
     for kwargs in kwargs_in # Grab the kwarg symbols
         MacroTools.postwalk(x -> typeof(x) == Symbol ? (push!(kwsyms, x);x) : x, kwargs)
     end
-
-    initFcn_body = copy(initFcn) # Copy the initFcn expression to a new variable
-    # Remove the function call by ignoring the first argument (this will be the function header) and reassign the header type to a block instead of a function
-    initFcn_body.args = initFcn.args[2:end]
-    initFcn_body.head = :block
     # Remove reassignemt of kwarg values within the initFcn. We can ignore those when we go to parse all variables in the funcotin
-    rmkwrhs = MacroTools.postwalk(x -> rmLHSKwargs(x, kwsyms), initFcn_body)
+    rmkwrhs = MacroTools.postwalk(x -> rmLHSKwargs(x, kwsyms), initBlock)
     # Check if any kwarg variables show up anywhere in the init function after removing reassignment.
     MacroTools.postwalk(x -> walkKwArgs(x, kwsyms, usedKwargs), rmkwrhs)
+    println(rmkwrhs)
     # Return the vector of kwarguments that are used in the initfunction
     return unique(usedKwargs)
 end

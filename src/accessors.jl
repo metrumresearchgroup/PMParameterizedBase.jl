@@ -7,27 +7,29 @@ using PMxSim
         ex = getfield(obj,:raw)
         return MacroTools.striplines(ex)
     elseif sym == :states
-        ms = collect(methods(obj.model.ICfcn))[1]
-        kwargs = Base.kwarg_decl(ms)
-        if length(kwargs) > 0
-            header = obj.model.__ICheader
-            fcncall = copy(header)
-            fcncall.args[3] = obj.parameters
-            fcncall.args[1] = obj.model.ICfcn
-            out = :($(header.args[1])($(header.args[2])) = $fcncall)
-            out = eval(out)
+        ms = collect(methods(obj.model.initFcn))
+        kwargs = Base.kwarg_decl(ms[1])
+        if length(ms) > 0
+            if length(kwargs) > 0
+                out = (;kwargs...) -> obj.model.initFcn(;kwargs...).u
+            else
+                out = obj.model.initFcn().p
+            end
         else
-            out = obj.model.ICfcn(obj.parameters)
+            out = obj.states
         end
         return out
     elseif sym == :parameters
-        ms = collect(methods(obj.model.initFcn))[1]
-        kwargs = Base.kwarg_decl(ms)
-        if length(kwargs) > 0
-            out = (;kwargs...) -> obj.model.initFcn(;kwargs...).p
-            # out = obj.model.initFcn.p
+        ms = collect(methods(obj.model.initFcn))
+        kwargs = Base.kwarg_decl(ms[1])
+        if length(ms) > 0
+            if length(kwargs) > 0
+                out = (;kwargs...) -> obj.model.initFcn(;kwargs...).p
+            else
+                out = obj.model.initFcn().p
+            end
         else
-            out = obj.model.initFcn().p
+            out = obj.parameters
         end
     else # fallback to getfield
         return getfield(obj, sym)

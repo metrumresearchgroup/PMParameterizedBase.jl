@@ -13,8 +13,7 @@ using PMxSim
         k = 2
         fooey =9
         @parameter begin 
-            p = 2
-            a = 5
+            p = 2*a
             z = 9
             q = 3
         end
@@ -29,21 +28,17 @@ using PMxSim
     j = 3
 end;
 mdl_basic
-mdl_basic.parameters
-mdl_basic.model.Cfcn(0,0,0,0;a=4)
-
-testfun = :(function foo(du, u, params, t; a, b)
-a + 9
-end)
-# @capture(testfun, function f_(args__) body_ end )
-@capture(testfun, (f_(args__) = body_) | (function f_(args__) body_ end) | (function (args__) body_ end))
+mdl_basic.parameters()
+mdl_basic.states()
 
 
 
-testmac = :(@mrparam begin
-    a = 2
-    b = 3
-end)
-
-testmac2 = :(@mrparam j = 0)
-@capture(testmac2, @mrparam body_)
+function baz(a,b,c)
+    d = 9
+    e = 10
+    f = 11
+    function bar(a,b,c)
+        return b + d + e
+    end
+    return bar
+end
