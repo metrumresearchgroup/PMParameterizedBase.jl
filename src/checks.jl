@@ -26,8 +26,8 @@ function checkDefs(x)
         error("@parameter definiton outside of @init")
     elseif isexpr(x) && x.head == :macrocall && x.args[1] == Symbol("@variable")
         error("@variable definition outside of @init")
-    elseif isexpr(x) && x.head == :macrocall && x.args[1] == Symbol("@constant")
-        error("@constant definition outside of @init")
+    elseif isexpr(x) && x.head == :macrocall && x.args[1] == Symbol("@dynamic")
+        error("@dynamic definition outside of @init")
     end
     return x
 end
@@ -66,8 +66,8 @@ function checkRedefinition(Block::MdlBlock; type=:parameter)
                     @warn "@parameter $n is defined multiple times. Using value from last definition"
                 elseif type == :variable
                     @warn "@variable $n is defined multiple times. Using value from the last definition as the initial condition"
-                elseif type == :constant
-                    @warn "@constant $n is defined multiple times. Using value from the last defintion"
+                elseif type == :dynamic
+                    @warn "@dynamic $n is defined multiple times. Using RHS from the last defintion"
                 end
             end
         end

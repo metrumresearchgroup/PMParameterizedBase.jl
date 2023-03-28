@@ -83,13 +83,13 @@ function getVariable(x, Block::MdlBlock)
     return x
 end
 
-# Get all @constant assignments
+# Get all @dynamic assignments
 function getConstant(x, Block::MdlBlock)
     if typeof(x) == LineNumberNode # Check for LineNumberNodes and update MdlBlock LNN
         Block.LNN = x
     end
-    if @capture(x, @constant constant _)
-        push!(Block.Block.args, constant.args...)
+    if @capture(x, @dynamic dynamic _)
+        push!(Block.Block.args, dynamic.args...)
         MacroTools.prewalk(x -> getAssignment(x, Block), x)
     end
 end

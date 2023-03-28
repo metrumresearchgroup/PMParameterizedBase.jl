@@ -51,7 +51,7 @@ using PMxSim
             end
         end
         peanut = -123
-        @constant foo = 2
+        @dynamic foo = 2
     end
     l = 2
     j = 3
@@ -60,7 +60,6 @@ using PMxSim
         z = 2
     end
     x = 8.2
-    
 end;
 mdl_basic
 mdl_basic.parameters()

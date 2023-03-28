@@ -38,7 +38,7 @@ macro ddt(min)
     return esc(min)
 end
 
-macro constant(min)
+macro dynamic(min)
     return esc(min)
 end
 
