@@ -18,7 +18,7 @@ function parseInit(modfn, arguments)
     parameterBlock = MdlBlock()
     MacroTools.postwalk(x -> getParam(x, parameterBlock), initBlock.Block) # Update the initBlock properties by walking through the expression tree
 
-    # Check if are redefined and throw a warning, if so.
+    # Check if any parameters are redefined and throw a warning, if so.
     checkRedefinition(parameterBlock; type = :parameter)
 
     # Create a MdlBlock object for all other algebraic relationships in @init
@@ -33,11 +33,13 @@ function parseInit(modfn, arguments)
 
     # Create a MdlBlock object for state variable block(s)
     variableBlock = MdlBlock()
-    MacroTools.prewalk(x -> getVariable(x, variableBlock), initBlock.Block)
-    checkRedefinition(variableBlock; type = :variable)
-
+    MacroTools.prewalk(x -> getVariable(x, variableBlock), initBlock.Block) # Update the initBlock properties by walking through the expression tree
+    
+    # Check if any variables are redefined and throw a warning, if so.
+    checkRedefinition(variableBlock; type = :variable) 
 
     # NEED TO CHECK FOR PARAMETER/STATIC/VARIABLE OVERLAP!
+    
 
     return nothing
 

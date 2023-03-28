@@ -38,6 +38,11 @@ macro ddt(min)
     return esc(min)
 end
 
+macro constant(min)
+    return esc(min)
+end
+
+
 
 export @model
 export @parameter

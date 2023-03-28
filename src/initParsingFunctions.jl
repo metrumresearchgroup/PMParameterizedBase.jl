@@ -1,43 +1,47 @@
+# Get variable assignments
 function getAssignment(x, Block::MdlBlock)
-    if typeof(x) == LineNumberNode
+    if typeof(x) == LineNumberNode # Check for LineNumberNodes and update MdlBlock LNN
         Block.LNN = x
     end
 
-    if isexpr(x) && x.head ∈ [:if, :for, :while]
+    if isexpr(x) && x.head ∈ [:if, :for, :while] # If in an if/for/while block update the node counter
         Block.node_counter += 1
     end
-    if ((@capture(x, a_ = b_) || @capture(x, a_ .= b_) || @capture(x, @__dot__ a_ = b_)))
-        push!(Block.node_number, Block.node_counter)
-        push!(Block.names, a)
-        push!(Block.LNNVector, Block.LNN)
-        return nothing
+    if ((@capture(x, a_ = b_) || @capture(x, a_ .= b_) || @capture(x, @__dot__ a_ = b_))) # Check for variable assignment (i.e a = b)
+        push!(Block.node_number, Block.node_counter) # Push node counter to MdlBlock
+        push!(Block.names, a) # Push variable name to MdlBlock
+        push!(Block.LNNVector, Block.LNN) # Push LNN to MdlBlock
+        return nothing # If a variable is assigned, return nothing so walk doesn't go further down this branch. No need to "explore" futher.
     end
     return x
 end
 
-
-function getInit(x, Block::MdlBlock)
+# Get only @init block(s) from @model
+function getInit(x, Block::MdlBlock) # Check for LineNumberNodes and update MdlBlock LNN
     if typeof(x) == LineNumberNode
         Block.LNN = x
     end
-    if @capture(x, @init init_)
+    if @capture(x, @init init_) # If an @init block is found, push contents to MdlBlock.Block
         push!(Block.Block.args, init.args...)
-        push!(Block.LNNVector, Block.LNN)
+        push!(Block.LNNVector, Block.LNN) # Push LNN to MdlBLock. This is probably unused...
     end
     return x
 end
 
+
+# Get only @parameter block(s) from @model
 function getParam(x, Block::MdlBlock)
-    if typeof(x) == LineNumberNode
+    if typeof(x) == LineNumberNode # Check for LineNumberNodes and update MdlBlock LNN
         Block.LNN = x
     end
-    if @capture(x, @parameter param_)
-        push!(Block.Block.args, param.args...)
-        MacroTools.postwalk(x -> getAssignment(x, Block), x)
+    if @capture(x, @parameter param_) # If an @parameter block is found, push contents to MdlBlock.Block
+        push!(Block.Block.args, param.args...) 
+        MacroTools.postwalk(x -> getAssignment(x, Block), x) # Grab assignments within the @parameter block
     end
     return x
 end
 
+# Remove any @parameter definitions
 function rmParams(x)
     if isexpr(x) && @capture(x, @parameter _)
         return nothing
@@ -46,6 +50,7 @@ function rmParams(x)
     end
 end
 
+# Remove any @variable definitions
 function rmVariables(x)
     if isexpr(x) && @capture(x, @variable _)
         return nothing
@@ -55,39 +60,50 @@ function rmVariables(x)
 end
 
 
-
-function getStatic(x, Block::MdlBlock)
-    # println(x)
+# Get all algebraic defintions in a block
+function getAlgebraic(x, Block::MdlBlock)
     if typeof(x) == LineNumberNode
         Block.LNN = x
     end
     if isexpr(x) 
-        MacroTools.prewalk(x -> getAssignment(x, Block), x)
+        MacroTools.prewalk(x -> getAssignment(x, Block), x) # Grab all all assignments from a block that has @parameters and @variables removed
     end
     return x
 end
 
+# Get all @variable assignments
 function getVariable(x, Block::MdlBlock)
-    if typeof(x) == LineNumberNode
+    if typeof(x) == LineNumberNode # Check for LineNumberNodes and update MdlBlock LNN
         Block.LNN = x
     end
-    if @capture(x, @variable var_)
+    if @capture(x, @variable var_) # If an @variable block is found, push contents to MdlBlock.Block
         push!(Block.Block.args, var.args...)
-        MacroTools.prewalk(x -> getAssignment(x, Block), x)
+        MacroTools.prewalk(x -> getAssignment(x, Block), x) # Grab all assignments within the @variable block
     end
     return x
 end
 
+# Get all @constant assignments
+function getConstant(x, Block::MdlBlock)
+    if typeof(x) == LineNumberNode # Check for LineNumberNodes and update MdlBlock LNN
+        Block.LNN = x
+    end
+    if @capture(x, @constant constant _)
+        push!(Block.Block.args, constant.args...)
+        MacroTools.prewalk(x -> getAssignment(x, Block), x)
+    end
+end
 
 
-function filterStatic!(staticBlock::MdlBlock, pBlock::MdlBlock)
+# Find overlap between parameters and algebraic variables. Warn if a parameter is redefined as an algebraic variable (i.e without @parameter) or if an algebraic variable is redefined as an @parameter. If redefinition occurs, remove from unused corresponding MdlBlock list of names. 
+function filterAlgebraic!(algebraicBlock::MdlBlock, parameterBlock::MdlBlock)
     checked = Vector{Symbol}()
     rmStatic = Vector{Int64}()
     rmP = Vector{Int64}()
-    for (i, (nm,sLNN)) in enumerate(zip(staticBlock.names,staticBlock.LNNVector))
-        if (nm in pBlock.names) && (sLNN ∉ pBlock.LNNVector)
-            j = findall(pBlock.names .== nm)[1]
-            pLNN = pBlock.LNNVector[j]
+    for (i, (nm,sLNN)) in enumerate(zip(algebraicBlock.names,algebraicBlock.LNNVector))
+        if (nm in parameterBlock.names) && (sLNN ∉ parameterBlock.LNNVector)
+            j = findall(parameterBlock.names .== nm)[1]
+            pLNN = parameterBlock.LNNVector[j]
             if pLNN.line > sLNN.line && nm ∉ checked
                 push!(checked, nm)
                 push!(rmStatic, i)
@@ -99,11 +115,14 @@ function filterStatic!(staticBlock::MdlBlock, pBlock::MdlBlock)
             end
         end
     end
-    deleteat!(staticBlock.names, rmStatic)
-    deleteat!(staticBlock.LNNVector, rmStatic)
-    deleteat!(pBlock.names, rmP)
-    deleteat!(pBlock.LNNVector, rmP)
+    deleteat!(algebraicBlock.names, rmStatic)
+    deleteat!(algebraicBlock.LNNVector, rmStatic)
+    deleteat!(parameterBlock.names, rmP)
+    deleteat!(parameterBlock.LNNVector, rmP)
 end
+
+
+
 
 
 
