@@ -50,6 +50,23 @@ function walkAndCheckDdt(init_block)
 end
     
 
+function checkRedefinition(Block::MdlBlock; type=:parameter)
+    nUnique = unique(Block.names)
+    for n in nUnique
+        idxs = findall(n .== Block.names)
+        if length(idxs) >= 2
+            if !allequal(Block.node_number[idxs])
+                if type == :parameter
+                    @warn "@parameter $n is defined multiple times. Using value from last definition"
+                elseif type == :variable
+                    @warn "@variable $n is defined multiple times. Using value from the last definition as the initial condition"
+                end
+            end
+        end
+    end
+end
+
+
 
 
 

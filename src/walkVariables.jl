@@ -21,9 +21,10 @@ function walkVariables(x, pnames, static_names, vnames, isBlock)
                 @warn "$nm is defined using '@variable' multiple times"
             elseif nm ∈ pnames
                 error("$nm already used to define a @parameter, cannot be used for variable name")
-            else
+            elseif isBlock[end] == false && nm ∉ vnames
                 error("Unrecognized error")
             end
+            push!(isBlock, false)
         end
     end
     return x

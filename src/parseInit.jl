@@ -1,52 +1,49 @@
+Base.@kwdef mutable struct MdlBlock
+    node_counter::Int64 = 0
+    node_number::Vector{Int64} = Vector{Int64}()
+    names::Vector{Symbol} = Vector{Symbol}()
+    Block::Expr = Expr(:block)
+    LNN::LineNumberNode = LineNumberNode(0)
+    LNNVector::Vector{LineNumberNode} = Vector{LineNumberNode}()
+end
+
+
 function parseInit(modfn, arguments)
     walkAndCheckDefs(modfn) # Make sure there are no parameter or variable definitions outside of an @init block
-    pnames = Vector{Symbol}() # Create an empty vector for storing parameter names
-    static_names = Vector{Symbol}() # Create an empty vector for storing the names of static variables
-    vnames = Vector{Symbol}() # Create an empty vector to store the names of state variables
-    static_ignore = Vector{Symbol}() # Use the static ignore so warnings only show once.
-    initBlock = Vector{Expr}() # Create a vector to hold the expressions contained within an @init block
-    MacroTools.postwalk(x -> walkInitMacro(x, pnames, static_names, vnames, static_ignore, initBlock), modfn) # Populate these vectors by walking through the expression tree
-    initBlock = Expr(:block, initBlock...)
-    walkAndCheckDdt(initBlock) # Make sure there are no derivative (@ddt) defintions in the @init block
-    return pnames, static_names, vnames, initBlock # Return all variables
+    # Create an MdlBlock object for the initial block(s)
+    initBlock = MdlBlock()
+    MacroTools.postwalk(x -> getInit(x, initBlock), modfn) # Update the initBlock properties by walking through the expression tree
+    
+    # Create a MdlBlock object for the parameter block(s)
+    parameterBlock = MdlBlock()
+    MacroTools.postwalk(x -> getParam(x, parameterBlock), initBlock.Block) # Update the initBlock properties by walking through the expression tree
+
+    # Check if are redefined and throw a warning, if so.
+    checkRedefinition(parameterBlock; type = :parameter)
+
+    # Create a MdlBlock object for all other algebraic relationships in @init
+    staticBlock = MdlBlock()
+    staticIn = MacroTools.postwalk(x -> rmParams(x), initBlock.Block)
+    staticIn = MacroTools.postwalk(x -> rmVariables(x), staticIn)
+    MacroTools.prewalk(x -> getStatic(x, staticBlock), staticIn) # Update the initBlock properties by walking through the expression tree
+
+    # Throw warnings for reassignment of parameters to algebraic expressions and vice versa
+    # Filter out un-needed parameters/algebraic expressions based on re-assignment
+    filterStatic!(staticBlock, parameterBlock)
+
+    # Create a MdlBlock object for state variable block(s)
+    variableBlock = MdlBlock()
+    MacroTools.prewalk(x -> getVariable(x, variableBlock), initBlock.Block)
+    checkRedefinition(variableBlock; type = :variable)
+
+
+    # NEED TO CHECK FOR PARAMETER/STATIC/VARIABLE OVERLAP!
+
+    return nothing
+
 end
 
 
-function rmLHSKwargs(x, kwsyms) # Create a function to remove lines that reassign the value of kwargs. If they are reassigned we can safely ignore the input value
-    if isexpr(x) && typeof(x) != LineNumberNode && ((@capture(x, a_ = b_) || @capture(x, a_ .= b_) || @capture(x, @__dot__ a_ = b_)))
-        if x.head == :(=) && x.args[1] ∈ kwsyms
-            return nothing
-        else
-            return x
-        end
-    else
-        return x
-    end
-end
-
-function walkKwArgs(x, kwsyms, usedKwargs) # Check if a kwarg value is used anywhere in the code.
-    if typeof(x) == Symbol && x ∈ kwsyms
-        push!(usedKwargs, x) # If kwarg value is used, push the symbol to the usedKwargs vector
-    end
-    x
-end
-
-
-
-function kwargsUsedInInit(initBlock, kwargs_in)
-    kwsyms = Vector{Symbol}() # Create a vector to hold all of the kwarg symbols
-    usedKwargs = Vector{Symbol}() # Create a vector to hold kwargs that are used in the init function
-
-    for kwargs in kwargs_in # Grab the kwarg symbols
-        MacroTools.postwalk(x -> typeof(x) == Symbol ? (push!(kwsyms, x);x) : x, kwargs)
-    end
-    # Remove reassignemt of kwarg values within the initFcn. We can ignore those when we go to parse all variables in the funcotin
-    rmkwrhs = MacroTools.postwalk(x -> rmLHSKwargs(x, kwsyms), initBlock)
-    # Check if any kwarg variables show up anywhere in the init function after removing reassignment.
-    MacroTools.postwalk(x -> walkKwArgs(x, kwsyms, usedKwargs), rmkwrhs)
-    # Return the vector of kwarguments that are used in the initfunction
-    return unique(usedKwargs)
-end
 
 
 

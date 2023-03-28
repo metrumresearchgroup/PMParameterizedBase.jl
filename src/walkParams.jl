@@ -1,11 +1,4 @@
-function walkParamsMacro(x, pnames, static_names)
-    x = MacroTools.striplines(x)
-    if isexpr(x) && x.head == :macrocall && x.args[1] == Symbol("@parameter")
-        isBlock = Vector{Bool}([false]) # Define a vector to see if recursion is in a block or not
-        out = MacroTools.postwalk(x -> walkParams(x, pnames, static_names, isBlock), x)
-    end
-    return x
-end
+
 
 function walkParams(x, pnames, static_names, isBlock)
     if isexpr(x) && x.head == :block # Check if the parameter is being defined in a block. A block likely denotes an if/else statement or for loop.
@@ -21,6 +14,7 @@ function walkParams(x, pnames, static_names, isBlock)
             else
                 error("Unrecognized error")
             end
+            push!(isBlock, false)
         end
     end
     return x
