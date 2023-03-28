@@ -14,10 +14,9 @@ include("MRGModel.jl")
 include("parseHeader.jl")
 include("parseInit.jl")
 include("parseBody.jl")
-include("initParsingFunctions.jl")
+include("parsingFunctions.jl")
 include("walkParams.jl")
 include("walkVariables.jl")
-include("walkBody.jl")
 include("assemblyFunctions.jl")
 include("checks.jl")
 include("accessors.jl")
@@ -30,7 +29,7 @@ macro init(min)
     return esc(min)
 end
 
-macro variable(min)
+macro IC(min)
     return esc(min)
 end
 

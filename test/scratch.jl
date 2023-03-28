@@ -12,39 +12,40 @@ using PMxSim
         j = 1
         k = 2
         fooey =9
-        @parameter begin 
-            if a > 2
-                p = 2*a
-                h = 2
-            else
-                p = -99
-                h = 1000
-            end
-            if q < 3
-                h = 2
-            else
-                h = 10000
-            end
-            p = 99999
+        # @parameter begin 
+        #     if a > 2
+        #         p = 2*a
+        #         h = 2
+        #     else
+        #         p = -99
+        #         h = 1000
+        #     end
+        #     if q < 3
+        #         h = 2
+        #     else
+        #         h = 10000
+        #     end
+        #     p = 99999
 
-            z = 9
-            q = 3
-        end
+        #     z = 9
+        #     q = 3
+        # end
 
-        @parameter begin
-            if q ==2
-                peanut = 7
-                fooeybar = 2
-            else
-                peanut = 111
-                fooeybar = 2
-            end
-        end
+        # @parameter begin
+        #     if q ==2
+        #         peanut = 7
+        #         fooeybar = 2
+        #     else
+        #         peanut = 111
+        #         fooeybar = 2
+        #     end
+        # end
 
-        @variable begin
-            if k <= 2
-            x = 2
-            y = 4
+        @IC begin
+            if k < 2
+                x = 2
+                y = 4
+                x = 2
             else
                 x = 9
                 y = 3

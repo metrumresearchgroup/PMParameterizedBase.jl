@@ -1,3 +1,6 @@
+
+
+
 function walkBodyMacro(x, derivatives, args)
     # if isexpr(x) && x.head == :macrocall && x.args[1] == Symbol("@ddt")
     if @capture(x, @ddt ddtDef_)
@@ -9,9 +12,6 @@ function walkBodyMacro(x, derivatives, args)
 
     return out
 end
-
-
-
 
 
 
@@ -33,15 +33,5 @@ function replaceDdt(x, derivatives, dtracker, args)
 end
 
 
-function getRepeatedAssignments(x, dynamic_names)
-    if isexpr(x) && typeof(x) != LineNumberNode && ((@capture(x, a_ = b_) || @capture(x, a_ .= b_) || @capture(x, @__dot__ a_ = b_)))
-        if (x.head == :(=))
-            nm = x.args[1]
-            if nm ∉ dynamic_names
-                push!(dynamic_names, nm)
-            end
-        end
-    end
-    return x
-end
+
 

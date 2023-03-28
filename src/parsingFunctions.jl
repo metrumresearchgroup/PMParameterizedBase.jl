@@ -3,18 +3,23 @@ function getAssignment(x, Block::MdlBlock)
     if typeof(x) == LineNumberNode # Check for LineNumberNodes and update MdlBlock LNN
         Block.LNN = x
     end
-
-    if isexpr(x) && x.head ∈ [:if, :for, :while] # If in an if/for/while block update the node counter
-        Block.node_counter += 1
-    end
-    if ((@capture(x, a_ = b_) || @capture(x, a_ .= b_) || @capture(x, @__dot__ a_ = b_))) # Check for variable assignment (i.e a = b)
-        push!(Block.node_number, Block.node_counter) # Push node counter to MdlBlock
+    if isexpr(x) && x.head ∈ [:if, :for, :while]
+        println(x)
+        push!(Block.clauses, x)
+        out = x
+    elseif ((@capture(x, a_ = b_) || @capture(x, a_ .= b_) || @capture(x, @__dot__ a_ = b_))) # Check for variable assignment (i.e a = b)
         push!(Block.names, a) # Push variable name to MdlBlock
         push!(Block.LNNVector, Block.LNN) # Push LNN to MdlBlock
-        return nothing # If a variable is assigned, return nothing so walk doesn't go further down this branch. No need to "explore" futher.
+        out = nothing
+    else
+        out = x
     end
-    return x
+    return out
 end
+
+
+
+
 
 # Get only @init block(s) from @model
 function getInit(x, Block::MdlBlock) # Check for LineNumberNodes and update MdlBlock LNN
@@ -50,9 +55,9 @@ function rmParams(x)
     end
 end
 
-# Remove any @variable definitions
-function rmVariables(x)
-    if isexpr(x) && @capture(x, @variable _)
+# Remove any @IC definitions
+function rmICs(x)
+    if isexpr(x) && @capture(x, @IC _)
         return nothing
     else
         return x
@@ -60,42 +65,56 @@ function rmVariables(x)
 end
 
 
-# Get all algebraic defintions in a block
+
+
+# Get all constant defintions in a block
 function getAlgebraic(x, Block::MdlBlock)
     if typeof(x) == LineNumberNode
         Block.LNN = x
     end
     if isexpr(x) 
-        MacroTools.prewalk(x -> getAssignment(x, Block), x) # Grab all all assignments from a block that has @parameters and @variables removed
+        MacroTools.prewalk(x -> getAssignment(x, Block), x) # Grab all all assignments from a block that has @parameters and @ICs removed
     end
     return x
 end
 
-# Get all @variable assignments
-function getVariable(x, Block::MdlBlock)
+# Get all @IC assignments
+function getIC(x, Block::MdlBlock)
     if typeof(x) == LineNumberNode # Check for LineNumberNodes and update MdlBlock LNN
         Block.LNN = x
     end
-    if @capture(x, @variable var_) # If an @variable block is found, push contents to MdlBlock.Block
+    if @capture(x, @IC var_) # If an @IC block is found, push contents to MdlBlock.Block
         push!(Block.Block.args, var.args...)
-        MacroTools.prewalk(x -> getAssignment(x, Block), x) # Grab all assignments within the @variable block
+        MacroTools.prewalk(x -> getAssignment(x, Block), x) # Grab all assignments within the @IC block
     end
     return x
 end
 
-# Get all @dynamic assignments
-function getDynamic(x, Block::MdlBlock)
+# Get all @repeated assignments
+function getRepeated(x, Block::MdlBlock)
     if typeof(x) == LineNumberNode # Check for LineNumberNodes and update MdlBlock LNN
         Block.LNN = x
     end
-    if @capture(x, @dynamic dynamic _)
-        push!(Block.Block.args, dynamic.args...)
+    if @capture(x, @repeated repeated _)
+        push!(Block.Block.args, repeated.args...)
         MacroTools.prewalk(x -> getAssignment(x, Block), x)
     end
 end
 
 
-# Find overlap between variable assignment in two blocks. Warn if a variable of type 1 is redefined as type 2 or vice versa. If redefinition occurs, remove from unused corresponding MdlBlock list of names. 
+# get all @ddt assignments
+function getDdt(x, Block::MdlBlock)
+    if typeof(x) == LineNumberNode # Check for LineNumberNodes and update MdlBlock LNN
+        Block.LNN = x
+    end
+    if @capture(x, @ddt repeated _)
+        push!(Block.Block.args, repeated.args...)
+        MacroTools.prewalk(x -> getAssignment(x, Block), x)
+    end
+end
+
+
+# Find overlap between ic assignment in two blocks. Warn if a ic of type 1 is redefined as type 2 or vice versa. If redefinition occurs, remove from unused corresponding MdlBlock list of names. 
 
 function blockOverlap!(Block1::MdlBlock, Block2::MdlBlock, type1::Symbol, type2::Symbol)
     checked = Vector{Symbol}()
@@ -153,9 +172,9 @@ function kwargsUsedInInit(initBlock, kwargs_in)
     for kwargs in kwargs_in # Grab the kwarg symbols
         MacroTools.postwalk(x -> typeof(x) == Symbol ? (push!(kwsyms, x);x) : x, kwargs)
     end
-    # Remove reassignemt of kwarg values within the initFcn. We can ignore those when we go to parse all variables in the funcotin
+    # Remove reassignemt of kwarg values within the initFcn. We can ignore those when we go to parse all ics in the funcotin
     rmkwrhs = MacroTools.postwalk(x -> rmLHSKwargs(x, kwsyms), initBlock)
-    # Check if any kwarg variables show up anywhere in the init function after removing reassignment.
+    # Check if any kwarg ics show up anywhere in the init function after removing reassignment.
     MacroTools.postwalk(x -> walkKwArgs(x, kwsyms, usedKwargs), rmkwrhs)
     # Return the vector of kwarguments that are used in the initfunction
     return unique(usedKwargs)

@@ -11,6 +11,7 @@ function checkArgs(args, kwargs)
     end
 end
 
+
 # Remove @init definitions
 function removeDefs(x)
     if isexpr(x) && x.head == :macrocall && x.args[1] == Symbol("@init")
@@ -24,10 +25,10 @@ end
 function checkDefs(x)
     if isexpr(x) && x.head == :macrocall && x.args[1] == Symbol("@parameter")
         error("@parameter definiton outside of @init")
-    elseif isexpr(x) && x.head == :macrocall && x.args[1] == Symbol("@variable")
-        error("@variable definition outside of @init")
-    elseif isexpr(x) && x.head == :macrocall && x.args[1] == Symbol("@dynamic")
-        error("@dynamic definition outside of @init")
+    elseif isexpr(x) && x.head == :macrocall && x.args[1] == Symbol("@IC")
+        error("@IC definition outside of @init")
+    elseif isexpr(x) && x.head == :macrocall && x.args[1] == Symbol("@repeated")
+        error("@repeated definition outside of @init")
     end
     return x
 end
@@ -54,20 +55,37 @@ function walkAndCheckDdt(init_block)
     MacroTools.postwalk(x -> checkDdtInInit(x), init_block)
 end
     
+# Function to get LineNumberNodes from all "clauses"
+function getLNNs(Block)
+    LNNs = Vector{LineNumberNode}()
+    for clause in Block.clauses
+        MacroTools.postwalk(x -> ((typeof(x) == LineNumberNode) ? (push!(LNNs, x) ; x) : x), clause)
+    end
+    return LNNs
+end
 
-# Check for redefintion of @parameter or @variable
+# Check for redefintion of @parameter or @ic
 function checkRedefinition(Block::MdlBlock; type=:parameter)
+    # println(type)
     nUnique = unique(Block.names)
+    LNNs = getLNNs(Block)
     for n in nUnique
         idxs = findall(n .== Block.names)
         if length(idxs) >= 2
-            if !allequal(Block.node_number[idxs])
+            LNNSum = 0
+            for idx in idxs
+                # println(Block.LNNVector[idx])
+                if length(LNNs) > 0 && Block.LNNVector[idx] ∈ LNNs
+                    LNNSum += 1
+                end
+            end
+            if !(LNNSum == length(idxs))
                 if type == :parameter
                     @warn "@parameter $n is defined multiple times. Using value from last definition"
-                elseif type == :variable
-                    @warn "@variable $n is defined multiple times. Using value from the last definition as the initial condition"
+                elseif type == :ic
+                    @warn "@IC $n is defined multiple times. Using value from the last definition as the initial condition"
                 elseif type == :dynamic
-                    @warn "@dynamic $n is defined multiple times. Using RHS from the last defintion"
+                    @warn "@repeated $n is defined multiple times. Using RHS from the last defintion"
                 end
             end
         end
