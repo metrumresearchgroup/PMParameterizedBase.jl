@@ -95,30 +95,31 @@ function getConstant(x, Block::MdlBlock)
 end
 
 
-# Find overlap between parameters and algebraic variables. Warn if a parameter is redefined as an algebraic variable (i.e without @parameter) or if an algebraic variable is redefined as an @parameter. If redefinition occurs, remove from unused corresponding MdlBlock list of names. 
-function filterAlgebraic!(algebraicBlock::MdlBlock, parameterBlock::MdlBlock)
+# Find overlap between variable assignment in two blocks. Warn if a variable of type 1 is redefined as type 2 or vice versa. If redefinition occurs, remove from unused corresponding MdlBlock list of names. 
+
+function blockOverlap!(Block1::MdlBlock, Block2::MdlBlock, type1::Symbol, type2::Symbol)
     checked = Vector{Symbol}()
-    rmStatic = Vector{Int64}()
-    rmP = Vector{Int64}()
-    for (i, (nm,sLNN)) in enumerate(zip(algebraicBlock.names,algebraicBlock.LNNVector))
-        if (nm in parameterBlock.names) && (sLNN ∉ parameterBlock.LNNVector)
-            j = findall(parameterBlock.names .== nm)[1]
-            pLNN = parameterBlock.LNNVector[j]
-            if pLNN.line > sLNN.line && nm ∉ checked
+    rmBlock1 = Vector{Int64}()
+    rmBlock2 = Vector{Int64}()
+    for (i, (nm,b1LNN)) in enumerate(zip(Block1.names,Block1.LNNVector))
+        if (nm in Block2.names) && (b1LNN ∉ Block2.LNNVector)
+            j = findall(Block2.names .== nm)[1]
+            b2LNN = Block2.LNNVector[j]
+            if b2LNN.line > b1LNN.line && nm ∉ checked
                 push!(checked, nm)
-                push!(rmStatic, i)
-                @warn "Converting static definition of $nm to a @parameter"
+                push!(rmBlock1, i)
+                @warn "Converting $type1 definition of $nm to a(n) $type2"
             elseif nm ∉ checked
                 push!(checked, nm)
-                push!(rmP, j)
-                @warn "Converting @parameter $nm to a static variable"
+                push!(rmBlock2, j)
+                @warn "Converting $type2 defintion of $nm to a(n) $type1"
             end
         end
     end
-    deleteat!(algebraicBlock.names, rmStatic)
-    deleteat!(algebraicBlock.LNNVector, rmStatic)
-    deleteat!(parameterBlock.names, rmP)
-    deleteat!(parameterBlock.LNNVector, rmP)
+    deleteat!(Block1.names, rmBlock1)
+    deleteat!(Block1.LNNVector, rmBlock1)
+    deleteat!(Block2.names, rmBlock2)
+    deleteat!(Block2.LNNVector, rmBlock2)
 end
 
 

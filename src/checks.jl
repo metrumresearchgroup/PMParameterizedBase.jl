@@ -66,6 +66,8 @@ function checkRedefinition(Block::MdlBlock; type=:parameter)
                     @warn "@parameter $n is defined multiple times. Using value from last definition"
                 elseif type == :variable
                     @warn "@variable $n is defined multiple times. Using value from the last definition as the initial condition"
+                elseif type == :constant
+                    @warn "@constant $n is defined multiple times. Using value from the last defintion"
                 end
             end
         end
