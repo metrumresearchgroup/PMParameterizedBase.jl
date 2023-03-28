@@ -22,12 +22,12 @@ function parseInit(modfn, arguments)
     checkRedefinition(parameterBlock; type = :parameter)
 
 
-    # Create a MdlBlock object for the constant block(s)
-    constantBlock = MdlBlock()
-    MacroTools.postwalk(x -> getConstant(x, constantBlock), initBlock.Block)
+    # Create a MdlBlock object for the dynamic block(s)
+    dynamicBlock = MdlBlock()
+    MacroTools.postwalk(x -> getDynamic(x, dynamicBlock), initBlock.Block)
 
-    # Check if any constants are redefined and throw a warning, if so
-    checkRedefinition(constantBlock; type = :constant)
+    # Check if any dynamics are redefined and throw a warning, if so
+    checkRedefinition(dynamicBlock; type = :dynamic)
 
 
     # Create a MdlBlock object for all other algebraic relationships in @init
@@ -41,14 +41,13 @@ function parseInit(modfn, arguments)
     # Filter out un-needed parameters/algebraic expressions based on re-assignment
     blockOverlap!(algebraicBlock, parameterBlock,:algebraic, Symbol("@parameter"))
 
-    # Throw warnings for reassignemt of parameters to constants and vice versa
-    # Filter out un-needed parameters/constant expressions based on re-assignment
-    blockOverlap!(parameterBlock, constantBlock, Symbol("@parameter"), Symbol("@dynamic"))
+    # Throw warnings for reassignemt of parameters to dynamics and vice versa
+    # Filter out un-needed parameters/dynamic expressions based on re-assignment
+    blockOverlap!(parameterBlock, dynamicBlock, Symbol("@parameter"), Symbol("@dynamic"))
 
-    # Throw warnings for reassignment of algebraic expressions to constants and vice versa
-    # Filter out un-needed algebraics/constant expressions based on re-assignment
-    blockOverlap!(algebraicBlock, constantBlock, :algebraic, Symbol("@dynamic"))
-
+    # Throw warnings for reassignment of algebraic expressions to dynamic and vice versa
+    # Filter out un-needed algebraics/dynamic expressions based on re-assignment
+    blockOverlap!(algebraicBlock, dynamicBlock, :algebraic, Symbol("@dynamic"))
 
     # Create a MdlBlock object for state variable block(s)
     variableBlock = MdlBlock()
@@ -56,6 +55,19 @@ function parseInit(modfn, arguments)
     
     # Check if any variables are redefined and throw a warning, if so.
     checkRedefinition(variableBlock; type = :variable) 
+
+
+    # Throw warnings for reassignment of variable expressions to dynamic and vice versa
+    # Filter out un-needed variables/dynamic expressions based on re-assignment
+    blockOverlap!(variableBlock, dynamicBlock, Symbol("@variable"), Symbol("@dynamic"))
+
+    # Throw warnings for reassignment of variable expressions to parameters and vice versa
+    # Filter out un-needed variables/dynamic expressions based on re-assignment
+    blockOverlap!(variableBlock, parameterBlock, Symbol("@variable"), Symbol("@parameter"))
+
+    # Throw warnings for reassignment of variable expressions to algebraic expressions and vice versa
+    # Filter out un-needed variables/dynamic expressions based on re-assignment
+    blockOverlap!(variableBlock, algebraicBlock, Symbol("@variable"), :algebraic)
 
     
     

@@ -84,7 +84,7 @@ function getVariable(x, Block::MdlBlock)
 end
 
 # Get all @dynamic assignments
-function getConstant(x, Block::MdlBlock)
+function getDynamic(x, Block::MdlBlock)
     if typeof(x) == LineNumberNode # Check for LineNumberNodes and update MdlBlock LNN
         Block.LNN = x
     end
