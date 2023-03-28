@@ -51,6 +51,7 @@ using PMxSim
             end
         end
         peanut = -123
+        @constant foo = 2
     end
     l = 2
     j = 3
