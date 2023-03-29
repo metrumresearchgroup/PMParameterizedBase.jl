@@ -7,9 +7,14 @@ function parseInit(modfn, arguments)
     # Create a MdlBlock object for the parameter block(s)
     parameterBlock = MdlBlock()
     MacroTools.postwalk(x -> getParam(x, parameterBlock), initBlock.Block) # Update the parameterBlock properties by walking through the expression tree
+    # pBlock_tmp = MacroTools.postwalk(x -> insertIsDefined(x, :parameter), parameterBlock.Block)
 
+
+
+
+    # println(parameterBlock.Block)
     # Check if any parameters are redefined and throw a warning, if so.
-    checkRedefinition(parameterBlock; type = :parameter)
+    # checkRedefinition(parameterBlock; type = :parameter)
 
 
     # Create a MdlBlock object for the repeated block(s)
@@ -17,7 +22,7 @@ function parseInit(modfn, arguments)
     MacroTools.postwalk(x -> getRepeated(x, repeatedBlock), initBlock.Block) # Update the repeatedBlock properties by walking through the expression tree
 
     # Check if any repeateds are redefined and throw a warning, if so
-    checkRedefinition(repeatedBlock; type = :repeated)
+    # checkRedefinition(repeatedBlock; type = :repeated)
 
 
     # Create a MdlBlock object for all other constant relationships in @init
@@ -44,21 +49,30 @@ function parseInit(modfn, arguments)
     MacroTools.prewalk(x -> getIC(x, icBlock), initBlock.Block) # Update the icBlock properties by walking through the expression tree
 
 
+    # Reparse init to add previous definition checks
+    for type in ["@parameter", "@IC", "@repeated"]#,"none"]
+        LNN = []
+        initBlock_tmp = MacroTools.postwalk(x -> findBlockAndInsertIsDefined(x, type, LNN), initBlock.Block)
+        initBlock.Block = initBlock_tmp
+    end
+
+
+
     # Check if any ics are redefined and throw a warning, if so.
-    checkRedefinition(icBlock; type = :ic) 
+    # checkRedefinition(icBlock; type = :ic) 
 
 
     # Throw warnings for reassignment of ic expressions to repeated and vice versa
     # Filter out un-needed ics/repeated expressions based on re-assignment
-    blockOverlap!(icBlock, repeatedBlock, Symbol("@IC"), Symbol("@repeated"))
+    # blockOverlap!(icBlock, repeatedBlock, Symbol("@IC"), Symbol("@repeated"))
 
     # Throw warnings for reassignment of ic expressions to parameters and vice versa
     # Filter out un-needed ics/repeated expressions based on re-assignment
-    blockOverlap!(icBlock, parameterBlock, Symbol("@IC"), Symbol("@parameter"))
+    # blockOverlap!(icBlock, parameterBlock, Symbol("@IC"), Symbol("@parameter"))
 
     # Throw warnings for reassignment of ic expressions to constant expressions and vice versa
     # Filter out un-needed ics/repeated expressions based on re-assignment
-    blockOverlap!(icBlock, constantBlock, Symbol("@IC"), :constant)
+    # blockOverlap!(icBlock, constantBlock, Symbol("@IC"), :constant)
 
     
     

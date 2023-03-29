@@ -1,6 +1,7 @@
 using PMxSim
 using Base
 using ComponentArrays
+using Suppressor
 Base.@kwdef struct MRGModelRepr
       initFcn::Function = () -> ()
       __Header::Vector{Any} = Vector{Any}()
@@ -48,17 +49,18 @@ macro model(md)
     # TODO: If kwargs>0 maybe these should always be functions to avoid confusion??
     if length(usedKwargs) == 0
         params = :($initFcn().p)
-        u = :($initFcn().u)
+        u = :(@suppress $initFcn().u)
     else
         params = :($initFcn)
         u = :($initFcn)
     end
 
     # body, derivatives, repeated_names = parseBody(md, args)
-    # # println(body)
+    # println(initFcn)
 
-    # mdl = :(MRGModelRepr($initFcn, $arguments))
-    # modmrg = :(MRGModel(parameters = $params, states = $u, model = $mdl))
-    # return modmrg
+    mdl = :(MRGModelRepr($initFcn, $arguments))
+    modmrg = :(MRGModel(parameters = $params, states = $u, model = $mdl))
+    return modmrg
+
 end
 

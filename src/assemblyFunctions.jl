@@ -8,6 +8,9 @@ function buildInit(initBlock, parameterBlock, constantBlock, repeatedBlock, icBl
     if length(kwargs) > 0 && useKwargs # If there are any keyword arguments, insert them into the init function call
         insert!(initFcn.args[1].args, 2, kwargs...)
     end
+
+    push!(initFcn.args[2].args, :(defTypeDict = Dict()))
+
     push!(initFcn.args[2].args, initBlock.Block) # Add all of the initBlock code to the init function
 
     parameterCA_elements = join(["$pn = $pn" for pn in unique(parameterBlock.names)],", ")

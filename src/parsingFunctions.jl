@@ -3,16 +3,100 @@ function getAssignment(x, Block::MdlBlock)
     if typeof(x) == LineNumberNode # Check for LineNumberNodes and update MdlBlock LNN
         Block.LNN = x
     end
-    if isexpr(x) && x.head ∈ [:if, :for, :while]
-        println(x)
-        push!(Block.clauses, x)
-        out = x
-    elseif ((@capture(x, a_ = b_) || @capture(x, a_ .= b_) || @capture(x, @__dot__ a_ = b_))) # Check for variable assignment (i.e a = b)
+    if ((@capture(x, a_ = b_) || @capture(x, a_ .= b_) || @capture(x, @__dot__ a_ = b_))) # Check for variable assignment (i.e a = b)
         push!(Block.names, a) # Push variable name to MdlBlock
         push!(Block.LNNVector, Block.LNN) # Push LNN to MdlBlock
         out = nothing
     else
         out = x
+    end
+    return out
+end
+
+# function checkDefined(var, type, varname, defTypeDict)
+#     if isnothing(iterate(var)[2])
+#         if @isdefined(var)
+#             # prev = defTypeDict[varname]
+#             @warn "Declaring $var as type $type overwrites previous definition as $prev"
+#         else
+#             # defTypeDict[varnam] = type
+#         end
+#     end
+# end
+            
+
+
+
+function insertIsDefined(x, type, LNN)
+    if (@capture(x, @isdefined _))
+        return nothing
+    elseif typeof(x) == LineNumberNode
+        push!(LNN, x)
+        return x
+    elseif ((@capture(x, a_ = b_) || @capture(x, a_ .= b_) || @capture(x, @__dot__ a_ = b_))) # Check for variable assignment (i.e a = b)
+        local tval = string(type)
+        local lval = string(a)
+        local file = string(LNN[end].file)
+        local ln = string(LNN[end].line)
+        ret_expr = quote
+            if @isdefined($a)
+                if $lval in keys(defTypeDict)
+                    prev = defTypeDict[$lval]
+                else
+                    prev = nothing
+                end
+                if prev == $tval
+                    @warn string("Overwriting ", $tval, " ", $lval, " at (or near) ", $file,":",$ln)
+                elseif !(isnothing(prev))
+                    @warn string("Declaring ", $lval, " as type ", $tval, " at (or near) ", $file,":",$ln," overwrites previous definition as ", prev, )
+                else
+                    @warn string("Declaring ", $lval, " as type ", $tval, " at (or near) ", $file,":",$ln, " overwrites previous algebraic definition")
+                end
+            else
+                defTypeDict[$lval] = $tval
+            end
+            $x
+        end
+        for (i, arg) in enumerate(ret_expr.args)
+            if typeof(arg) == LineNumberNode
+                ret_expr.args[i] = LNN[end]
+            end
+        end
+        return ret_expr
+    else
+        return x
+    end
+end
+
+
+function findBlockAndInsertIsDefined(x, type, LNN)
+    if typeof(x) == LineNumberNode
+        push!(LNN, x)
+    end
+    if type == "@parameter"
+        if isexpr(x) && @capture(x, @parameter in_)
+            out = MacroTools.postwalk(x -> insertIsDefined(x, type, LNN), in)
+        else
+            out = x
+        end
+    elseif type == "@repeated"
+        if isexpr(x) && @capture(x, @repeated in_)
+            out = MacroTools.postwalk(x -> insertIsDefined(x, type, LNN), in)
+        else
+            out = x
+        end
+    elseif type == "@IC"
+        if isexpr(x) && @capture(x, @IC in_)
+            out = MacroTools.postwalk(x -> insertIsDefined(x, type, LNN), in)
+        else
+            out = x
+        end
+    # elseif type == "none"
+    #     if isexpr(x) && @capture(x, @_ in_)
+    #         out = nothing
+    #     else
+    #         out = MacroTools.postwalk(x -> insertIsDefined(x, "constant", LNN), x)
+    #     end
     end
     return out
 end

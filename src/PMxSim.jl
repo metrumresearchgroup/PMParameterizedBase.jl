@@ -41,6 +41,10 @@ macro dynamic(min)
     return esc(min)
 end
 
+macro repeated(min)
+    return esc(min)
+end
+
 
 
 export @model
