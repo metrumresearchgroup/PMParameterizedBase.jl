@@ -1,8 +1,11 @@
 using Revise
 using PMxSim
 
- mdl_basic = @model function test(du, u, params, t; a = 4)
+
+PMxSim.model_warnings = false
+mdl_basic = @model function test(du, u, params, t)#; a = 4, b =3)
     @init begin
+        a = 8
         if a>=4
             p = 2
             p = 3
@@ -64,9 +67,9 @@ using PMxSim
     x = 8.2
 end;
 
-mdl_basic.model.initFcn()
-mdl_basic.parameters()
-mdl_basic.states()
+foo = mdl_basic.model.initFcn()
+mdl_basic.parameters
+mdl_basic.states
 
 
 

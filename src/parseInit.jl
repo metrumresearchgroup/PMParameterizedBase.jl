@@ -10,19 +10,9 @@ function parseInit(modfn, arguments)
     # pBlock_tmp = MacroTools.postwalk(x -> insertIsDefined(x, :parameter), parameterBlock.Block)
 
 
-
-
-    # println(parameterBlock.Block)
-    # Check if any parameters are redefined and throw a warning, if so.
-    # checkRedefinition(parameterBlock; type = :parameter)
-
-
     # Create a MdlBlock object for the repeated block(s)
     repeatedBlock = MdlBlock()
     MacroTools.postwalk(x -> getRepeated(x, repeatedBlock), initBlock.Block) # Update the repeatedBlock properties by walking through the expression tree
-
-    # Check if any repeateds are redefined and throw a warning, if so
-    # checkRedefinition(repeatedBlock; type = :repeated)
 
 
     # Create a MdlBlock object for all other constant relationships in @init
@@ -38,10 +28,12 @@ function parseInit(modfn, arguments)
 
 
     # Reparse init to add previous definition checks
-    for type in ["@parameter", "@IC", "@repeated"]#,"none"]
-        LNN = []
-        initBlock_tmp = MacroTools.postwalk(x -> findBlockAndInsertIsDefined(x, type, LNN), initBlock.Block)
-        initBlock.Block = initBlock_tmp
+    if model_warnings
+        for type in ["@parameter", "@IC", "@repeated"]#,"none"]
+            LNN = []
+            initBlock_tmp = MacroTools.postwalk(x -> findBlockAndInsertIsDefined(x, type, LNN), initBlock.Block)
+            initBlock.Block = initBlock_tmp
+        end
     end
 
     return initBlock, parameterBlock, constantBlock, repeatedBlock, icBlock

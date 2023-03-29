@@ -4,12 +4,6 @@ using ComponentArrays
 
 # Write your package code here.
 
-# export @mrstate
-# export params!
-# export params
-# export show_parsed
-
-# include("parseStatic.jl")
 include("MRGModel.jl")
 include("parseHeader.jl")
 include("parseInit.jl")
@@ -46,6 +40,7 @@ macro repeated(min)
 end
 
 
+model_warnings = true
 
 export @model
 export @parameter

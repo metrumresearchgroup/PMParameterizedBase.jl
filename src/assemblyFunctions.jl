@@ -21,7 +21,7 @@ function buildInit(initBlock, parameterBlock, constantBlock, repeatedBlock, icBl
     icCA = string("ComponentArray($icCA_elements)")
     constantCA = string("ComponentArray($constantCA_elements)")
     repeatedCA = string("ComponentArray($repeatedCA_elements)")
-    return_line = string("return (p = $parameterCA, u = $icCA, constant = $constantCA, repeated = $repeatedCA)")
+    return_line = string("return (p = $parameterCA, ICs = $icCA, constant = $constantCA, repeated = $repeatedCA)")
     return_line = Meta.parse(return_line)
     initFcn.args[2].args = vcat(initFcn.args[2].args, [return_line])
     return initFcn

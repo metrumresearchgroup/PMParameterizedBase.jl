@@ -35,30 +35,27 @@ macro model(md)
     # Parse initBlock to get parameters, algebraic expressions, dynamic variables and state variables
     initBlock, parameterBlock, constantBlock, repeatedBlock, icBlock = parseInit(md, arguments)
 
+    # Parse body
+    
+
 
     # Check if kwargs are used to in initFcn
     usedKwargs = kwargsUsedInInit(initBlock.Block, kwargs)
+    # Build the initFcn either using kwargs or not
     if length(usedKwargs) > 0
         initFcn = buildInit(initBlock, parameterBlock, constantBlock, repeatedBlock, icBlock, kwargs; useKwargs = true)
     else
         initFcn = buildInit(initBlock, parameterBlock, constantBlock, repeatedBlock, icBlock, kwargs; useKwargs = false)
     end
 
-    params = ComponentVector{Float64}()
-    u = ComponentVector{Float64}()
-    # TODO: If kwargs>0 maybe these should always be functions to avoid confusion??
-    if length(usedKwargs) == 0
-        params = :($initFcn().p)
-        u = :(@suppress $initFcn().u)
-    else
-        params = :($initFcn)
-        u = :($initFcn)
-    end
+    # Get initial param vector and non-zero ICs
+    params = :($initFcn().p) 
+    u = :($initFcn().ICs)
 
-    # body, derivatives, repeated_names = parseBody(md, args)
-    # println(initFcn)
 
+    # Build MRGModelRepr object
     mdl = :(MRGModelRepr($initFcn, $arguments))
+    # Build modmrg
     modmrg = :(MRGModel(parameters = $params, states = $u, model = $mdl))
     return modmrg
 

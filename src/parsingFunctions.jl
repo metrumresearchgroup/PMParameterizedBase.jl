@@ -13,20 +13,6 @@ function getAssignment(x, Block::MdlBlock)
     return out
 end
 
-# function checkDefined(var, type, varname, defTypeDict)
-#     if isnothing(iterate(var)[2])
-#         if @isdefined(var)
-#             # prev = defTypeDict[varname]
-#             @warn "Declaring $var as type $type overwrites previous definition as $prev"
-#         else
-#             # defTypeDict[varnam] = type
-#         end
-#     end
-# end
-            
-
-
-
 function insertIsDefined(x, type, LNN)
     if (@capture(x, @isdefined _))
         return nothing
