@@ -1,14 +1,12 @@
 function parseInit(modfn, arguments)
+    # println(modfn)
     walkAndCheckDefs(modfn) # Make sure there are no parameter or ic definitions outside of an @init block
     # Create an MdlBlock object for the initial block(s)
     initBlock = MdlBlock()
     MacroTools.postwalk(x -> getInit(x, initBlock), modfn) # Update the initBlock properties by walking through the expression tree
-    
     # Create a MdlBlock object for the parameter block(s)
     parameterBlock = MdlBlock()
     MacroTools.postwalk(x -> getParam(x, parameterBlock), initBlock.Block) # Update the parameterBlock properties by walking through the expression tree
-    # pBlock_tmp = MacroTools.postwalk(x -> insertIsDefined(x, :parameter), parameterBlock.Block)
-
 
     # Create a MdlBlock object for the repeated block(s)
     repeatedBlock = MdlBlock()
@@ -27,15 +25,34 @@ function parseInit(modfn, arguments)
     MacroTools.prewalk(x -> getIC(x, icBlock), initBlock.Block) # Update the icBlock properties by walking through the expression tree
 
 
-    # Reparse init to add previous definition checks
+
+
+
+    # Reparse init to add previous definition checks to @parameter, @IC, and @repeated blocks
     if model_warnings
-        for type in ["@parameter", "@IC", "@repeated"]#,"none"]
-            LNN = []
-            initBlock_tmp = MacroTools.postwalk(x -> findBlockAndInsertIsDefined(x, type, LNN), initBlock.Block)
-            initBlock.Block = initBlock_tmp
+        LNNAll = []
+        for type in ["@parameter", "@IC", "@repeated"]
+            warnBlock = WarnBlock()
+            initBlock_tmp = MacroTools.postwalk(x -> findBlockAndInsertIsDefined(x, type, warnBlock), initBlock.Block)
+            push!(LNNAll, WarnBlock)
+            # initBlock.Block = initBlock_tmp
         end
+
+        #    Also need to add to "everything else"
+            warnAssignment = WarnBlock()
+            initBlock_tmp = MacroTools.postwalk(x -> insertIsDefinedAssignment(x, "algebraic", warnAssignment, LNNAll), initBlock.Block)
+            initBlock.Block = initBlock_tmp
+            # println(LNNAssignment)
+
     end
 
+
+ 
+
+
+    initBlock.Block = MacroTools.postwalk(x -> rmParamDef(x), initBlock.Block)
+    initBlock.Block = MacroTools.postwalk(x -> rmICDef(x), initBlock.Block)
+    initBlock.Block = MacroTools.postwalk(x -> rmRepeatedDef(x), initBlock.Block)
     return initBlock, parameterBlock, constantBlock, repeatedBlock, icBlock
 
 end

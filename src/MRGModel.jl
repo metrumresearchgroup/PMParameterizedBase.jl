@@ -17,16 +17,18 @@ Base.@kwdef mutable struct MRGModel
 end
 
 Base.@kwdef mutable struct MdlBlock
-    node_counter::Int64 = 0
-    node_number::Vector{Int64} = Vector{Int64}()
     names::Vector{Symbol} = Vector{Symbol}()
     Block::Expr = Expr(:block)
     LNN::LineNumberNode = LineNumberNode(0)
     LNNVector::Vector{LineNumberNode} = Vector{LineNumberNode}()
-    clauses = []
-    xPrev::Union{Expr,Symbol,LineNumberNode,Number,Nothing} = :()
 end
 
+
+Base.@kwdef mutable struct WarnBlock
+    LNN::LineNumberNode = LineNumberNode(0)
+    LNNVector::Vector{LineNumberNode} = Vector{LineNumberNode}()
+    defTypeDict::Dict{String,String} = Dict{String, String}()
+end
 
 macro model(md)
     # Parse header to get args and kwargs
@@ -36,7 +38,8 @@ macro model(md)
     initBlock, parameterBlock, constantBlock, repeatedBlock, icBlock = parseInit(md, arguments)
 
     # Parse body
-    
+    bodyBlock = parseBody(md, arguments)
+
 
 
     # Check if kwargs are used to in initFcn
@@ -49,15 +52,16 @@ macro model(md)
     end
 
     # Get initial param vector and non-zero ICs
-    params = :($initFcn().p) 
-    u = :($initFcn().ICs)
-
+    # params = :($initFcn().p) 
+    # u = :(@suppress $initFcn().ICs)
+    params = ComponentArray{Number}()
+    u = ComponentArray{Number}()
 
     # Build MRGModelRepr object
     mdl = :(MRGModelRepr($initFcn, $arguments))
     # Build modmrg
     modmrg = :(MRGModel(parameters = $params, states = $u, model = $mdl))
-    return modmrg
+    return esc(initFcn)
 
 end
 

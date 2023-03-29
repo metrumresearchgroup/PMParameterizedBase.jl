@@ -55,14 +55,6 @@ function walkAndCheckDdt(init_block)
     MacroTools.postwalk(x -> checkDdtInInit(x), init_block)
 end
     
-# Function to get LineNumberNodes from all "clauses"
-function getLNNs(Block)
-    LNNs = Vector{LineNumberNode}()
-    for clause in Block.clauses
-        MacroTools.postwalk(x -> ((typeof(x) == LineNumberNode) ? (push!(LNNs, x) ; x) : x), clause)
-    end
-    return LNNs
-end
 
 
 

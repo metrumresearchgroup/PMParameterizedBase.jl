@@ -2,7 +2,7 @@ using Revise
 using PMxSim
 
 
-PMxSim.model_warnings = false
+PMxSim.model_warnings = true
 mdl_basic = @model function test(du, u, params, t)#; a = 4, b =3)
     @init begin
         a = 8
@@ -28,7 +28,8 @@ mdl_basic = @model function test(du, u, params, t)#; a = 4, b =3)
                 h = 10000
             end
             p = 99999
-
+            p = 232
+        
             z = 9
             q = 3
         end
@@ -56,7 +57,8 @@ mdl_basic = @model function test(du, u, params, t)#; a = 4, b =3)
             end
         end
         @IC peanut = -123
-        @dynamic foo = 2
+        @repeated foo = 2
+        z = -99
     end
     l = 2
     j = 3
@@ -72,13 +74,12 @@ mdl_basic.parameters
 mdl_basic.states
 
 
-
-function baz(a,b,c)
-    d = 9
-    e = 10
-    f = 11
-    function bar(a,b,c)
-        return b + d + e
+test2 = @model function test2(du, u, p, t)
+    @init begin
+        @parameter a = 9
+        a = 3
     end
-    return bar
-end
+
+end;
+
+test2()

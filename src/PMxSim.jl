@@ -9,8 +9,6 @@ include("parseHeader.jl")
 include("parseInit.jl")
 include("parseBody.jl")
 include("parsingFunctions.jl")
-include("walkParams.jl")
-include("walkVariables.jl")
 include("assemblyFunctions.jl")
 include("checks.jl")
 include("accessors.jl")
@@ -31,10 +29,6 @@ macro ddt(min)
     return esc(min)
 end
 
-macro dynamic(min)
-    return esc(min)
-end
-
 macro repeated(min)
     return esc(min)
 end
@@ -46,6 +40,9 @@ export @model
 export @parameter
 export @init
 export @variable
+export @repeated
+export @IC
+export @ddt
 export ComponentArray
 
 
