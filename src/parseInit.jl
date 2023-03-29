@@ -31,18 +31,6 @@ function parseInit(modfn, arguments)
     constantIn = MacroTools.postwalk(x -> rmICs(x), constantIn)
     MacroTools.prewalk(x -> getAlgebraic(x, constantBlock), constantIn) # Update the constantBlock properties by walking through the expression tree
 
-    # TODO: Need to think a bit more about the order of these...
-    # Throw warnings for reassignment of parameters to constant expressions and vice versa
-    # Filter out un-needed parameters/constant expressions based on re-assignment
-    blockOverlap!(constantBlock, parameterBlock,:constant, Symbol("@parameter"))
-
-    # Throw warnings for reassignemt of parameters to repeateds and vice versa
-    # Filter out un-needed parameters/repeated expressions based on re-assignment
-    blockOverlap!(parameterBlock, repeatedBlock, Symbol("@parameter"), Symbol("@repeated"))
-
-    # Throw warnings for reassignment of constant expressions to repeated and vice versa
-    # Filter out un-needed constants/repeated expressions based on re-assignment
-    blockOverlap!(constantBlock, repeatedBlock, :constant, Symbol("@repeated"))
 
     # Create a MdlBlock object for state ic block(s)
     icBlock = MdlBlock()
@@ -55,27 +43,6 @@ function parseInit(modfn, arguments)
         initBlock_tmp = MacroTools.postwalk(x -> findBlockAndInsertIsDefined(x, type, LNN), initBlock.Block)
         initBlock.Block = initBlock_tmp
     end
-
-
-
-    # Check if any ics are redefined and throw a warning, if so.
-    # checkRedefinition(icBlock; type = :ic) 
-
-
-    # Throw warnings for reassignment of ic expressions to repeated and vice versa
-    # Filter out un-needed ics/repeated expressions based on re-assignment
-    # blockOverlap!(icBlock, repeatedBlock, Symbol("@IC"), Symbol("@repeated"))
-
-    # Throw warnings for reassignment of ic expressions to parameters and vice versa
-    # Filter out un-needed ics/repeated expressions based on re-assignment
-    # blockOverlap!(icBlock, parameterBlock, Symbol("@IC"), Symbol("@parameter"))
-
-    # Throw warnings for reassignment of ic expressions to constant expressions and vice versa
-    # Filter out un-needed ics/repeated expressions based on re-assignment
-    # blockOverlap!(icBlock, constantBlock, Symbol("@IC"), :constant)
-
-    
-    
 
     return initBlock, parameterBlock, constantBlock, repeatedBlock, icBlock
 

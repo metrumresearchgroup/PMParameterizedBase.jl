@@ -64,33 +64,7 @@ function getLNNs(Block)
     return LNNs
 end
 
-# Check for redefintion of @parameter or @ic
-function checkRedefinition(Block::MdlBlock; type=:parameter)
-    # println(type)
-    nUnique = unique(Block.names)
-    LNNs = getLNNs(Block)
-    for n in nUnique
-        idxs = findall(n .== Block.names)
-        if length(idxs) >= 2
-            LNNSum = 0
-            for idx in idxs
-                # println(Block.LNNVector[idx])
-                if length(LNNs) > 0 && Block.LNNVector[idx] ∈ LNNs
-                    LNNSum += 1
-                end
-            end
-            if !(LNNSum == length(idxs))
-                if type == :parameter
-                    @warn "@parameter $n is defined multiple times. Using value from last definition"
-                elseif type == :ic
-                    @warn "@IC $n is defined multiple times. Using value from the last definition as the initial condition"
-                elseif type == :dynamic
-                    @warn "@repeated $n is defined multiple times. Using RHS from the last defintion"
-                end
-            end
-        end
-    end
-end
+
 
 
 
