@@ -36,21 +36,21 @@ function insertIsDefinedBlock(x, type, warnBlock)
             local ln = string(warnBlock.LNN.line)
             ret_expr = quote
                 if @isdefined($a)
-                    if $lval in keys(warnBlock.defTypeDict)
-                        prev = warnBlock.defTypeDict[$lval]
+                    if $lval in keys($warnBlock.defTypeDict)
+                        $warnBlock.prev = $warnBlock.defTypeDict[$lval]
                     else
-                        prev = nothing
+                        $warnBlock.prev = nothing
                     end
-                    if prev == $tval
+                    if $warnBlock.prev == $tval
                         @warn (string("Overwriting ", $tval, " ", $lval, " at (or near) ", $file,":",$ln))
-                    elseif !(isnothing(prev))
-                        @warn (string("Declaring ", $lval, " as ", $tval, " at (or near) ", $file,":",$ln," overwrites previous definition as ", prev, ))
+                    elseif !(isnothing($warnBlock.prev))
+                        @warn (string("Declaring ", $lval, " as ", $tval, " at (or near) ", $file,":",$ln," overwrites previous definition as ", $warnBlock.prev, ))
                     else
                         @warn (string("Declaring ", $lval, " as ", $tval, " at (or near) ", $file,":",$ln, " overwrites previous algebraic definition"))
                     end
-                    warnBlock.defTypeDict[$lval] = $tval
+                    $warnBlock.defTypeDict[$lval] = $tval
                 else
-                    warnBlock.defTypeDict[$lval] = $tval
+                    $warnBlock.defTypeDict[$lval] = $tval
                 end
                 $x
             end
@@ -69,12 +69,12 @@ function insertIsDefinedBlock(x, type, warnBlock)
 end
 
 
-function insertIsDefinedAssignment(x, type, warnAssignment, LNNAll)
-    if (@capture(x, @isdefined _))
-        return nothing
-    elseif (@capture(x, @warn _))
-        return nothing
-    elseif typeof(x) == LineNumberNode
+function insertIsDefinedAssignment(x, type, warnAssignment, warnBlock, LNNAll)
+    # if (@capture(x, @isdefined _))
+        # return nothing
+    # elseif (@capture(x, @warn _))
+        # return nothing
+    if typeof(x) == LineNumberNode
         warnAssignment.LNN = x
         push!(warnAssignment.LNNVector, x)
         return x
@@ -89,19 +89,19 @@ function insertIsDefinedAssignment(x, type, warnAssignment, LNNAll)
                 ret_expr = quote
                     if @isdefined($a)
                         if $lval in keys($warnAssignment.defTypeDict)
-                            prev = $warnAssignment.defTypeDict[$lval]
+                            $warnAssignment.prev = $warnAssignment.defTypeDict[$lval]
+                        elseif $lval in keys($warnBlock.defTypeDict)
+                            $warnAssignment.prev = $warnBlock.defTypeDict[$lval]
                         else
-                            prev = nothing
+                            $warnAssignment.prev = nothing
                         end
-                        if prev == $tval
+                        if $warnAssignment.prev == $tval
                             @warn (string("Overwriting ", $tval, " ", $lval, " at (or near) ", $file,":",$ln))
-                        elseif !(isnothing(prev))
-                            @warn (string("Declaring ", $lval, " as ", $tval, " at (or near) ", $file,":",$ln," overwrites previous definition as ", prev, ))
+                        elseif !(isnothing($warnAssignment.prev))
+                            @warn (string("Declaring ", $lval, " as ", $tval, " at (or near) ", $file,":",$ln," overwrites previous definition as ", $warnAssignment.prev, ))
                         else
                             @warn (string("Declaring ", $lval, " as ", $tval, " at (or near) ", $file,":",$ln, " overwrites previous algebraic definition"))
                         end
-                    # else
-                    #     defTypeDict[$lval] = $tval
                     end
                     $x
                 end
@@ -111,7 +111,6 @@ function insertIsDefinedAssignment(x, type, warnAssignment, LNNAll)
                     end
                 end
                 return ret_expr
-                # return x
             else
                 return x
             end

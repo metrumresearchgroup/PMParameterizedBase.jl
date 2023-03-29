@@ -69,17 +69,20 @@ mdl_basic = @model function test(du, u, params, t)#; a = 4, b =3)
     x = 8.2
 end;
 
+mdl_basic()
 foo = mdl_basic.model.initFcn()
 mdl_basic.parameters
 mdl_basic.states
 
 
-test2 = @model function test2(du, u, p, t)
+test2 =  @model function test2(du, u, p, t)
     @init begin
         @parameter a = 9
         a = 3
     end
 
 end;
+test2
+
 
 test2()

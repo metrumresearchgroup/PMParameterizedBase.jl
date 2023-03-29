@@ -28,6 +28,7 @@ Base.@kwdef mutable struct WarnBlock
     LNN::LineNumberNode = LineNumberNode(0)
     LNNVector::Vector{LineNumberNode} = Vector{LineNumberNode}()
     defTypeDict::Dict{String,String} = Dict{String, String}()
+    prev::Union{String,Nothing} = ""
 end
 
 macro model(md)
