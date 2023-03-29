@@ -14,31 +14,30 @@ end
 
 
 
-function insertIsDefinedBlock(x, type, WarnBlock)
+function insertIsDefinedBlock(x, type, warnBlock)
     # If there are no line numbers because we are at the start of a definiton block, grab the one from just outside the block...
-    if length(WarnBlock.LNNVector) == 0
-        push!(WarnBlock.LNNVector, WarnBlock.LNN)
+    if length(warnBlock.LNNVector) == 0
+        push!(warnBlock.LNNVector, warnBlock.LNN)
     end
-
 
     if (@capture(x, @isdefined _))
         return nothing
     elseif (@capture(x, @warn _))
         return nothing
     elseif typeof(x) == LineNumberNode
-        WarnBlock.LNN = x
-        push!(WarnBlock.LNNVector, x)
+        warnBlock.LNN = x
+        push!(warnBlock.LNNVector, x)
         return x
     elseif ((@capture(x, a_ = b_) || @capture(x, a_ .= b_) || @capture(x, @__dot__ a_ = b_))) # Check for variable assignment (i.e a = b)
         if typeof(a) != Expr
             local tval = string(type)
             local lval = string(a)
-            local file = string(WarnBlock.LNN.file)
-            local ln = string(WarnBlock.LNN.line)
+            local file = string(warnBlock.LNN.file)
+            local ln = string(warnBlock.LNN.line)
             ret_expr = quote
                 if @isdefined($a)
-                    if $lval in keys(defTypeDict)
-                        prev = defTypeDict[$lval]
+                    if $lval in keys(warnBlock.defTypeDict)
+                        prev = warnBlock.defTypeDict[$lval]
                     else
                         prev = nothing
                     end
@@ -49,15 +48,15 @@ function insertIsDefinedBlock(x, type, WarnBlock)
                     else
                         @warn (string("Declaring ", $lval, " as ", $tval, " at (or near) ", $file,":",$ln, " overwrites previous algebraic definition"))
                     end
-                    defTypeDict[$lval] = $tval
+                    warnBlock.defTypeDict[$lval] = $tval
                 else
-                    defTypeDict[$lval] = $tval
+                    warnBlock.defTypeDict[$lval] = $tval
                 end
                 $x
             end
             for (i, arg) in enumerate(ret_expr.args)
                 if typeof(arg) == LineNumberNode
-                    ret_expr.args[i] = WarnBlock.LNN
+                    ret_expr.args[i] = warnBlock.LNN
                 end
             end
             return ret_expr
@@ -70,27 +69,27 @@ function insertIsDefinedBlock(x, type, WarnBlock)
 end
 
 
-function insertIsDefinedAssignment(x, type, WarnAssignment, LNNAll)
+function insertIsDefinedAssignment(x, type, warnAssignment, LNNAll)
     if (@capture(x, @isdefined _))
         return nothing
     elseif (@capture(x, @warn _))
         return nothing
     elseif typeof(x) == LineNumberNode
-        WarnAssignment.LNN = x
-        push!(WarnAssignment.LNNVector, x)
+        warnAssignment.LNN = x
+        push!(warnAssignment.LNNVector, x)
         return x
     elseif ((@capture(x, a_ = b_) || @capture(x, a_ .= b_) || @capture(x, @__dot__ a_ = b_))) # Check for variable assignment (i.e a = b)
         if typeof(a) != Expr
             local tval = string(type)
             local lval = string(a)
-            local file = string(WarnAssignment.LNN.file)
-            local ln = string(WarnAssignment.LNN.line)
-            local lnn = WarnAssignment.LNN
+            local file = string(warnAssignment.LNN.file)
+            local ln = string(warnAssignment.LNN.line)
+            local lnn = warnAssignment.LNN
             if lnn ∉ LNNAll
                 ret_expr = quote
                     if @isdefined($a)
-                        if $lval in keys(defTypeDict)
-                            prev = defTypeDict[$lval]
+                        if $lval in keys($warnAssignment.defTypeDict)
+                            prev = $warnAssignment.defTypeDict[$lval]
                         else
                             prev = nothing
                         end
@@ -108,7 +107,7 @@ function insertIsDefinedAssignment(x, type, WarnAssignment, LNNAll)
                 end
                 for (i, arg) in enumerate(ret_expr.args)
                     if typeof(arg) == LineNumberNode
-                        ret_expr.args[i] = WarnAssignment.LNN
+                        ret_expr.args[i] = warnAssignment.LNN
                     end
                 end
                 return ret_expr
@@ -126,25 +125,25 @@ end
 
 
 
-function findBlockAndInsertIsDefined(x, type, WarnBlock)
+function findBlockAndInsertIsDefined(x, type, warnBlock)
     if typeof(x) == LineNumberNode
-        WarnBlock.LNN = x
+        warnBlock.LNN = x
     end
     if type == "@parameter"
         if isexpr(x) && @capture(x, @parameter in_)
-            out = MacroTools.postwalk(x -> insertIsDefinedBlock(x, type, WarnBlock), in)
+            out = MacroTools.postwalk(x -> insertIsDefinedBlock(x, type, warnBlock), in)
         else
             out = x
         end
     elseif type == "@repeated"
         if isexpr(x) && @capture(x, @repeated in_)
-            out = MacroTools.postwalk(x -> insertIsDefinedBlock(x, type, WarnBlock), in)
+            out = MacroTools.postwalk(x -> insertIsDefinedBlock(x, type, warnBlock), in)
         else
             out = x
         end
     elseif type == "@IC"
         if isexpr(x) && @capture(x, @IC in_)
-            out = MacroTools.postwalk(x -> insertIsDefinedBlock(x, type, WarnBlock), in)
+            out = MacroTools.postwalk(x -> insertIsDefinedBlock(x, type, warnBlock), in)
         else
             out = x
         end

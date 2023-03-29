@@ -9,7 +9,7 @@ function buildInit(initBlock, parameterBlock, constantBlock, repeatedBlock, icBl
         insert!(initFcn.args[1].args, 2, kwargs...)
     end
 
-    push!(initFcn.args[2].args, :(defTypeDict = Dict()))
+    # push!(initFcn.args[2].args, :(defTypeDict = Dict()))
 
     push!(initFcn.args[2].args, initBlock.Block) # Add all of the initBlock code to the init function
 
