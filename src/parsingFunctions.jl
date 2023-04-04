@@ -15,7 +15,7 @@ end
 
 
 function insertIsDefinedBlock(x, type, warnBlock)
-    # If there are no line numbers because we are at the start of a definiton block, grab the one from just outside the block...
+    # If there are no line numbers because we are at the start of a definiton block, grab the one from just outside the block and return nothing to move onto the next declaration
     if length(warnBlock.LNNVector) == 0
         push!(warnBlock.LNNVector, warnBlock.LNN)
         return nothing
@@ -60,7 +60,11 @@ function insertIsDefinedBlock(x, type, warnBlock)
                     ret_expr.args[i] = warnBlock.LNN
                 end
             end
-            return ret_expr
+            if model_warnings
+                return ret_expr
+            else
+                return x
+            end
         else
             return x
         end
@@ -192,10 +196,15 @@ function getParam(x, Block::MdlBlock)
         Block.LNN = x
     end
     if @capture(x, @parameter param_) # If an @parameter block is found, push contents to MdlBlock.Block
-        paramargs = unblock.(param.args)
-        push!(Block.Block.args, paramargs...)
-        MacroTools.postwalk(x -> getAssignment(x, Block), x) # Grab assignments within the @parameter block
-        return nothing
+        if typeof(param) == Symbol
+            push!(Block.names, param)
+            return nothing
+        else
+            paramargs = unblock.(param.args)
+            push!(Block.Block.args, paramargs...)
+            MacroTools.postwalk(x -> getAssignment(x, Block), x) # Grab assignments within the @parameter block
+            return nothing
+        end
     else
         return x
     end
@@ -243,10 +252,15 @@ function getIC(x, Block::MdlBlock)
         Block.LNN = x
     end
     if @capture(x, @IC var_) # If an @IC block is found, push contents to MdlBlock.Block
-        varargs = unblock.(var.args)
-        push!(Block.Block.args, varargs...)
-        MacroTools.prewalk(x -> getAssignment(x, Block), x) # Grab all assignments within the @IC block
-        return nothing
+        if typeof(var) == Symbol
+            push!(Block.names, var)
+            return nothing
+        else
+            varargs = unblock.(var.args)
+            push!(Block.Block.args, varargs...)
+            MacroTools.prewalk(x -> getAssignment(x, Block), x) # Grab all assignments within the @IC block
+            return nothing
+        end
     else
         return x
     end

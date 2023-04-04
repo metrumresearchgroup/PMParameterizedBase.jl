@@ -29,20 +29,19 @@ function parseInit(modfn, arguments)
 
 
     # Reparse init to add previous definition checks to @parameter, @IC, and @repeated blocks
-    if model_warnings
+    # if model_warnings
         LNNAll = []
         warnBlock = WarnBlock()
         for type in ["@parameter", "@IC", "@repeated"]
             initBlock_tmp = MacroTools.postwalk(x -> findBlockAndInsertIsDefined(x, type, warnBlock), initBlock.Block)
             initBlock.Block = initBlock_tmp
         end
-
         #    Also need to add to "everything else"
             warnAssignment = WarnBlock()
             initBlock_tmp = MacroTools.postwalk(x -> insertIsDefinedAssignment(x, "algebraic", warnAssignment, warnBlock, LNNAll), initBlock.Block)
             # initBlock.Block = initBlock_tmp
 
-    end
+    # end
 
 
  
