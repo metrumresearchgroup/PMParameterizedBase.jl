@@ -1,7 +1,6 @@
 module PMxSim
 using MacroTools
 using ComponentArrays
-using Suppressor
 
 # Write your package code here.
 

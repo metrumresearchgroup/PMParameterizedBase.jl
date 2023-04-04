@@ -4,6 +4,7 @@ function parseHeader(md)
     args = Vector{Symbol}()
     for arg in arguments
         if typeof(arg) == Expr && arg.head == :parameters
+            error("kwargs are currently not supported. Support coming in future versions")
             for arg_i in arg.args
                 if typeof(arg_i) == Symbol 
                     kwarg_i = arg_i

@@ -3,8 +3,9 @@ using PMxSim
 
 
 PMxSim.model_warnings = false
-mdl_basic =  @model function test(du, u, params, t)#; a = 4, b =3)
+mdl_basic =  @model function test(du, u, params, t)
     @init begin
+        porter = 7
         a = 8
         if a>=4
             p = 2
@@ -13,9 +14,10 @@ mdl_basic =  @model function test(du, u, params, t)#; a = 4, b =3)
         q = 8
         j = 1
         k = 2
-        fooey =9
-        @parameter porter
+        fooey = 9
+
         @parameter begin 
+            porter = porter
             if a > 2
                 p = 2*a
                 h = 2
@@ -34,6 +36,7 @@ mdl_basic =  @model function test(du, u, params, t)#; a = 4, b =3)
             z = 9
             q = 3
         end
+        @repeated z
 
         @parameter begin
             if q ==2
@@ -58,8 +61,10 @@ mdl_basic =  @model function test(du, u, params, t)#; a = 4, b =3)
             end
         end
         @IC peanut = -123
-        @repeated foo = 2
+        @repeated fooey = 2
         z = -99
+        @repeated porter
+
     end
     l = 2
     j = 3
@@ -71,7 +76,6 @@ mdl_basic =  @model function test(du, u, params, t)#; a = 4, b =3)
     println(p)
 end;
 
-mdl_basic
 mdl_basic()
 foo = mdl_basic.model.initFcn()
 mdl_basic.parameters

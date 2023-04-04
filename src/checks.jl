@@ -56,6 +56,27 @@ function walkAndCheckDdt(init_block)
 end
     
 
+function checkIsDefinedInit(Block; type="Parameter")
+    Block_names = Block.names
+
+
+ 
+    checkVars = quote
+        tp = $type
+        for ky in $Block_names
+            tmp = try eval(ky)
+                ky
+            catch e
+                e
+            end 
+            println(tmp)
+            if typeof(tmp) == UndefVarError
+                error("$tp '$ky' is not defined")
+            end
+        end
+    end
+    return checkVars
+end
 
 
 

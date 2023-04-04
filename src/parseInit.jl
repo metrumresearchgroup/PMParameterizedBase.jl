@@ -33,6 +33,7 @@ function parseInit(modfn, arguments)
         LNNAll = []
         warnBlock = WarnBlock()
         for type in ["@parameter", "@IC", "@repeated"]
+        # for type in ["@repeated"]
             initBlock_tmp = MacroTools.postwalk(x -> findBlockAndInsertIsDefined(x, type, warnBlock), initBlock.Block)
             initBlock.Block = initBlock_tmp
         end
