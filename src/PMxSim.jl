@@ -1,35 +1,49 @@
 module PMxSim
+using MacroTools
+using ComponentArrays
 
 # Write your package code here.
-export @model
-export @mrparam
-export @mrstate
-export params!
-export params
-export show_parsed
-
-
-# Create a bunch of unique variable names within the module namespace to reference derivatives, states, parameters, and time
-# These will later be replaced with the correct symbols from the code using MacroTools.postwalk
-# As of right now, "tsym" for time is unused.
-usym = gensym()
-dusym = gensym()
-psym = gensym()
-tsym = gensym()
-
-# Create a unique variable for continuous inputs
-inputsym = gensym(:input)
-
-
 
 include("MRGModel.jl")
-include("parsing_functions.jl")
+include("parseHeader.jl")
+include("parseInit.jl")
+include("parseBody.jl")
+include("parsingFunctions.jl")
+include("assemblyFunctions.jl")
 include("checks.jl")
-include("parsing_macros.jl")
-include("assembly_fcns.jl")
 include("accessors.jl")
 
+macro parameter(min)
+    return esc(min)
+end
 
+macro init(min)
+    return esc(min)
+end
+
+macro IC(min)
+    return esc(min)
+end
+
+macro ddt(min)
+    return esc(min)
+end
+
+macro repeated(min)
+    return esc(min)
+end
+
+
+model_warnings = true
+
+export @model
+export @parameter
+export @init
+export @variable
+export @repeated
+export @IC
+export @ddt
+export ComponentArray
 
 
 
