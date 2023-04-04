@@ -18,6 +18,7 @@ function insertIsDefinedBlock(x, type, warnBlock)
     # If there are no line numbers because we are at the start of a definiton block, grab the one from just outside the block...
     if length(warnBlock.LNNVector) == 0
         push!(warnBlock.LNNVector, warnBlock.LNN)
+        return nothing
     end
 
     if (@capture(x, @isdefined _))
