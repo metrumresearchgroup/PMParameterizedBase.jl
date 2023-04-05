@@ -1,59 +1,78 @@
 function parseInit(modfn, arguments)
-    # println(modfn)
-    walkAndCheckDefs(modfn) # Make sure there are no parameter or ic definitions outside of an @init block
+    walkAndCheckDefs(modfn) # Make sure there are no @parameter, @ic, @repeated or @constant definitions outside of an @init block
+    checkMultipleInit(modfn)
+    walkAndCheckDdtInInit(modfn)
+
     # Create an MdlBlock object for the initial block(s)
-    initBlock = MdlBlock()
+    initBlock = MdlBlock(type = "@init")
     MacroTools.postwalk(x -> getInit(x, initBlock), modfn) # Update the initBlock properties by walking through the expression tree
+
+
+    ## Check if a parameter exists in an if/for/while/try block
+    MacroTools.postwalk(x -> checkForDefInBlock(x), initBlock.Block)
+
     # Create a MdlBlock object for the parameter block(s)
-    parameterBlock = MdlBlock()
+    parameterBlock = MdlBlock(type = "@parameter",BlockSymbol = arguments[3])
     MacroTools.postwalk(x -> getParam(x, parameterBlock), initBlock.Block) # Update the parameterBlock properties by walking through the expression tree
 
-    # Create a MdlBlock object for the repeated block(s)
-    repeatedBlock = MdlBlock()
-    MacroTools.postwalk(x -> getRepeated(x, repeatedBlock), initBlock.Block) # Update the repeatedBlock properties by walking through the expression tree
+
+    # Create a MdlBlock object for the IC(s)
+    icBlock = MdlBlock(type = "@IC",BlockSymbol = arguments[2])
+    MacroTools.postwalk(x -> getIC(x, icBlock), initBlock.Block)
+
+    # Create a MdlBlock object for repeated variables
+    repeatedBlock = MdlBlock(type = "@repeated")
+    MacroTools.postwalk(x -> getRepeated(x, repeatedBlock), initBlock.Block)
+
+    # Create a MdlBlock object for constant variables
+    constantBlock = MdlBlock(type = "@constant")
+    MacroTools.postwalk(x -> getConstants(x, constantBlock), initBlock.Block)
 
 
-    # Create a MdlBlock object for all other constant relationships in @init
-    constantBlock = MdlBlock()
-    constantIn = MacroTools.postwalk(x -> rmParams(x), initBlock.Block)
-    constantIn = MacroTools.postwalk(x -> rmICs(x), constantIn)
-    MacroTools.prewalk(x -> getAlgebraic(x, constantBlock), constantIn) # Update the constantBlock properties by walking through the expression tree
+    # Remove all Macros the @init block and grab variable assignments
+    initAssignment = MdlBlock(type="Initial algebraic variable")
+    initAssignment.Block = MacroTools.postwalk(x -> @capture(x, @_ __) ? nothing : x, initBlock.Block)
+    MacroTools.postwalk(x -> getGenericAssignment(x, initAssignment), initAssignment.Block)
 
 
-    # Create a MdlBlock object for state ic block(s)
-    icBlock = MdlBlock()
-    MacroTools.prewalk(x -> getIC(x, icBlock), initBlock.Block) # Update the icBlock properties by walking through the expression tree
+    # Check if there are any repeated parameters
+    variableRepeat(parameterBlock)
+    # Check if there are any repeated ICs
+    variableRepeat(icBlock)
+    # Check if there are any repeated repeated
+    variableRepeat(repeatedBlock)
+    # Check if there are any repeated constants
+    variableRepeat(constantBlock)
+
+
+    # Check for @parameter, @ICs overlap
+    variableOverlap(parameterBlock, icBlock)
+    # Check for @parameter, @repeated overlap
+    variableOverlap(parameterBlock, repeatedBlock)
+    # Check for @paramter, @constant overlap
+    variableOverlap(parameterBlock, constantBlock)
+
+    # Check for @IC, @repeated overlap
+    variableOverlap(icBlock, repeatedBlock)
+    # Check for @IC, @constant overlap
+    variableOverlap(icBlock, constantBlock)
+
+     # Check for @repeated, @constant overlap
+     variableOverlap(repeatedBlock, constantBlock)
 
 
 
+     # Check for initAssignment, @parameter overlap
+     variableOverlap(initAssignment, parameterBlock)
+     # Check for initAssignment, @IC overlap
+     variableOverlap(initAssignment, icBlock)
+     # Check for initAssignment, @repeated overlap
+     variableOverlap(initAssignment, repeatedBlock)
+     # Check for initAssignment, @constant overlap
+     variableOverlap(initAssignment, constantBlock)
 
-
-    # Reparse init to add previous definition checks to @parameter, @IC, and @repeated blocks
-    # if model_warnings
-        LNNAll = []
-        warnBlock = WarnBlock()
-        for type in ["@parameter", "@IC", "@repeated"]
-        # for type in ["@repeated"]
-            initBlock_tmp = MacroTools.postwalk(x -> findBlockAndInsertIsDefined(x, type, warnBlock), initBlock.Block)
-            initBlock.Block = initBlock_tmp
-        end
-        #    Also need to add to "everything else"
-            warnAssignment = WarnBlock()
-            initBlock_tmp = MacroTools.postwalk(x -> insertIsDefinedAssignment(x, "algebraic", warnAssignment, warnBlock, LNNAll), initBlock.Block)
-            # initBlock.Block = initBlock_tmp
-
-    # end
-
-
- 
-
-
-    initBlock.Block = MacroTools.postwalk(x -> rmParamDef(x), initBlock.Block)
-    initBlock.Block = MacroTools.postwalk(x -> rmICDef(x), initBlock.Block)
-    initBlock.Block = MacroTools.postwalk(x -> rmRepeatedDef(x), initBlock.Block)
-    return initBlock, parameterBlock, constantBlock, repeatedBlock, icBlock
-
-end
+    return initBlock, parameterBlock, icBlock, repeatedBlock, constantBlock, initAssignment
+end 
 
 
 

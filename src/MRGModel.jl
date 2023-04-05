@@ -5,6 +5,8 @@ using Suppressor
 Base.@kwdef struct MRGModelRepr
       initFcn::Function = () -> ()
       __Header::Vector{Any} = Vector{Any}()
+      model::Function = () -> ()
+      parsed::Expr = :()
 end
 
 
@@ -14,6 +16,7 @@ Base.@kwdef mutable struct MRGModel
     states::CAorFcn = ComponentArray{Number}()
     tspan::Tuple = (0.0, 1.0)
     model::MRGModelRepr = MRGModelRepr()
+    f::Function = () -> ()
 end
 
 Base.@kwdef mutable struct MdlBlock
@@ -21,7 +24,10 @@ Base.@kwdef mutable struct MdlBlock
     Block::Expr = Expr(:block)
     LNN::LineNumberNode = LineNumberNode(0)
     LNNVector::Vector{LineNumberNode} = Vector{LineNumberNode}()
+    type::String = ""
+    BlockSymbol::Symbol = :nothing
 end
+
 
 
 Base.@kwdef mutable struct WarnBlock
@@ -36,33 +42,42 @@ macro model(md)
     args, kwargs, f, arguments, body = parseHeader(md)
 
     # Parse initBlock to get parameters, algebraic expressions, dynamic variables and state variables
-    initBlock, parameterBlock, constantBlock, repeatedBlock, icBlock = parseInit(md, arguments)
+    initBlock, parameterBlock, icBlock, repeatedBlock, constantBlock, initAssignment = parseInit(md, arguments)
 
     # Parse body
-    bodyBlock = parseBody(md, arguments)
+    inputSym = gensym("input")
+    bodyBlock, derivativeBlock, algebraicBlock, observedBlock = parseBody(md, inputSym, arguments)
+    # println(bodyBlock)
+    # Insert parameters into function body
+    insertParameters(bodyBlock, parameterBlock, arguments)
+    insertStates(bodyBlock, icBlock, arguments)
 
 
+    # Check for IC/derivative agreement
+    icDdtAgreement(icBlock, derivativeBlock)
 
-    # Check if kwargs are used to in initFcn
-    usedKwargs = kwargsUsedInInit(initBlock.Block, kwargs)
-    # Build the initFcn either using kwargs or not
-    if length(usedKwargs) > 0
-        initFcn = buildInit(initBlock, parameterBlock, constantBlock, repeatedBlock, icBlock, kwargs; useKwargs = true)
-    else
-        initFcn = buildInit(initBlock, parameterBlock, constantBlock, repeatedBlock, icBlock, kwargs; useKwargs = false)
-    end
+    # Check for and warn if parameters are being overwritten in body. 
+    paramOverwrite(parameterBlock, algebraicBlock)
+
+    # Check for and warn if any other initial assignments are being overwritten in the body
+    paramOverwrite(initAssignment, algebraicBlock)
+
+    initFcn = buildInit(initBlock, parameterBlock, constantBlock, repeatedBlock, icBlock)
+
 
     # Get initial param vector and non-zero ICs
-    # params = :($initFcn().p) 
-    # u = :(@suppress $initFcn().ICs)
-    params = ComponentArray{Number}()
-    u = ComponentArray{Number}()
+    params = :($initFcn) 
+    u = :(@suppress $initFcn)
+    # params = ComponentArray{Number}()
+    # u = ComponentArray{Number}()
 
     # Build MRGModelRepr object
-    mdl = :(MRGModelRepr($initFcn, $arguments))
+    bodyFcn = esc(bodyBlock.Block)
+    bodyFcnExpr = :($bodyBlock.Block)
+    mdl = :(MRGModelRepr($initFcn, $arguments, $bodyFcn, $bodyFcnExpr))
     # Build modmrg
-    modmrg = :(MRGModel(parameters = $params, states = $u, model = $mdl))
-    return esc(initFcn)
+    modmrg = :(MRGModel(parameters = $params, states = $u, model = $mdl, f = $(mdl).model))
+    return modmrg
 
 end
 

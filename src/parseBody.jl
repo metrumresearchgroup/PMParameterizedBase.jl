@@ -1,36 +1,22 @@
-function parseBody(modfn, args)
-    derivativeBlock = MdlBlock() # Create a MdlBlock to track which derivatives have been assigned.
-    algebraicBlock = MdlBlock() # Create a MdlBlock to track which repeated algebraic expressions have been assigned.
-    bodyBlock = MdlBlock() # Create a MdlBlock to hold everything but "@init"
+function parseBody(modfn, inputSym, arguments)
+    bodyBlock = MdlBlock(type="Body") # Create a MdlBlock to hold everything but "@init"
+    derivativeBlock = MdlBlock(type="@ddt", BlockSymbol = arguments[1]) # Create a MdlBlock to track which derivatives have been assigned.
+    algebraicBlock = MdlBlock(type="Algebraic variable") # Create a MdlBlock to track which repeated algebraic expressions have been assigned.
+    observedBlock = MdlBlock(type="@observed") #Create a MdlBlock to track observed quantities
+    
+    bodyBlock.Block = MacroTools.postwalk(x -> @capture(x, @init init_) ? nothing : x, modfn) # Remove @init block(s) from model. 
+    
+    model_function = MacroTools.postwalk(x -> getDdt(x, derivativeBlock, inputSym), bodyBlock.Block) # Update the parameterBlock properties by walking through the expression tree
+    
+    algebraicBlock.Block = MacroTools.postwalk(x -> @capture(x, @ddt ddt_) ? nothing : x, bodyBlock.Block)  # Remove @ddt definitions
+    MacroTools.postwalk(x -> getGenericAssignment(x, algebraicBlock), algebraicBlock.Block)
+    checkOOPDDT(algebraicBlock, arguments)
 
-    bodyBlock.Block = MacroTools.postwalk(x -> removeInit(x), modfn) # Remove @init block(s) from model. 
+    # Grab Observed Values
+    MacroTools.postwalk(x -> getObserved(x, observedBlock), bodyBlock.Block)
 
-    # Strip header/function call from body
-    bodyBlock.Block = MacroTools.postwalk(x -> (@capture(x, function f_(du_, u_, p_, t_, kwargs__) body_ end) ? body : x), MacroTools.longdef(bodyBlock.Block))
+    bodyBlock.Block = model_function
 
-    algebraicBlock.Block = MacroTools.prewalk(x -> removeDdt(x), bodyBlock.Block) # Remove @ddt definitions
-    # println(algebraicBlock.Block)
+    return bodyBlock, derivativeBlock, algebraicBlock, observedBlock
 
-    # Update the algebraicBlock properties by walking through the expression tree
-    MacroTools.prewalk(x -> getAssignment(x, algebraicBlock), algebraicBlock.Block) 
-    # println(algebraicBlock.names)
-    # println(algebraicBlock.LNNVector)
-
-    # Update the derivativeBlock properties by walking through the body expression tree
-    # MacroTools.postwalk(x -> getDdt(body, derivativeBlock), body)
-
-    return bodyBlock
-
-
-end
-
-
-
-# Remove all "@ddt" definitions from the model
-function removeDdt(x)
-    if isexpr(x) && x.head == :macrocall && x.args[1] == Symbol("@ddt")
-        return nothing
-    else
-        return x
-    end
 end
