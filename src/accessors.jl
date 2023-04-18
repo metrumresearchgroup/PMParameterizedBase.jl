@@ -2,39 +2,39 @@ using MacroTools
 using PMxSim
 # @inline Base.getproperty(obj::MRGModel, s::Symbol) = _getindex(Base.maybeview, x, Val(s))
 
-@inline function Base.getproperty(obj::MRGModel, sym::Symbol)
-    if sym === :parsed
-        ex = getfield(obj,:raw)
-        return MacroTools.striplines(ex)
-    elseif sym == :states
-        ms = collect(methods(obj.model.initFcn))
-        kwargs = Base.kwarg_decl(ms[1])
-        if length(ms) > 0
-            if length(kwargs) > 0
-                out = (;kwargs...) -> obj.model.initFcn(;kwargs...).u
-            else
-                out = obj.model.initFcn().p
-            end
-        else
-            out = obj.states
-        end
-        return out
-    elseif sym == :parameters
-        ms = collect(methods(obj.model.initFcn))
-        kwargs = Base.kwarg_decl(ms[1])
-        if length(ms) > 0
-            if length(kwargs) > 0
-                out = (;kwargs...) -> obj.model.initFcn(;kwargs...).p
-            else
-                out = obj.model.initFcn().p
-            end
-        else
-            out = obj.parameters
-        end
-    else # fallback to getfield
-        return getfield(obj, sym)
-    end
-end
+# @inline function Base.getproperty(obj::MRGModel, sym::Symbol)
+#     if sym === :parsed
+#         ex = getfield(obj,:raw)
+#         return MacroTools.striplines(ex)
+#     elseif sym == :states
+#         ms = collect(methods(obj.model.initFcn))
+#         kwargs = Base.kwarg_decl(ms[1])
+#         if length(ms) > 0
+#             if length(kwargs) > 0
+#                 out = (;kwargs...) -> obj.model.initFcn(;kwargs...).u
+#             else
+#                 out = obj.model.initFcn().p
+#             end
+#         else
+#             out = obj.states
+#         end
+#         return out
+#     elseif sym == :parameters
+#         ms = collect(methods(obj.model.initFcn))
+#         kwargs = Base.kwarg_decl(ms[1])
+#         if length(ms) > 0
+#             if length(kwargs) > 0
+#                 out = (;kwargs...) -> obj.model.initFcn(;kwargs...).p
+#             else
+#                 out = obj.model.initFcn().p
+#             end
+#         else
+#             out = obj.parameters
+#         end
+#     else # fallback to getfield
+#         return getfield(obj, sym)
+#     end
+# end
 
 
 # " Function to show parsed model with references to original definition and line numbers"

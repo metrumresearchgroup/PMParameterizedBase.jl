@@ -18,6 +18,7 @@ include("accessors.jl")
 include("checkBody.jl")
 include("checks.jl")
 
+fooey = 2
 macro parameter(min)
     return esc(min)
 end
@@ -54,5 +55,8 @@ export @ddt
 export ComponentArray
 
 # Base.show(io::IO, mdl::MRGModel) = print(io, typeof(mdl), ", ", mdl.parameters, ", ", mdl.states, " ",  mdl.tspan, ", ", mdl.model, ", ", MacroTools.striplines(mdl.model),")")
+
+## Submodules to Hold some sort of 
+
 
 end
