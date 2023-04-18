@@ -91,8 +91,10 @@ macro model(md)
     # u = ComponentArray{Number}()
 
     # Build MRGModelRepr object
-    bodyFcn = esc(bodyBlock.Block)
+    bodyFcn = bodyBlock.Block
+    # bodyFcn = :(() -> ())
     bodyFcnExpr = :($bodyBlock.Block)
+    # bodyFcnExpr = :(() -> ())
     mdl = :(MRGModelRepr($initFcn, $arguments, $bodyFcn, $bodyFcnExpr, $inputs))
     # Build modmrg
     modmrg = :(MRGModel(parameters = ($init)().p, states = ($init)().ICs, model = $mdl, f = $(mdl).model))
