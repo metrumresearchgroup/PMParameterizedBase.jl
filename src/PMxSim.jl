@@ -18,7 +18,6 @@ include("accessors.jl")
 include("checkBody.jl")
 include("checks.jl")
 
-fooey = 2
 macro parameter(min)
     return esc(min)
 end
