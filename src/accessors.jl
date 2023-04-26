@@ -2,6 +2,17 @@ using MacroTools
 using PMxSim
 # @inline Base.getproperty(obj::MRGModel, s::Symbol) = _getindex(Base.maybeview, x, Val(s))
 
+
+@inline function Base.getproperty(obj::MRGModel, sym::Symbol)
+    if sym == :states
+        out = obj.model.initFcn(obj.parameters).ICs
+        return out
+    else
+        return getfield(obj, sym)
+    end
+end
+
+
 # @inline function Base.getproperty(obj::MRGModel, sym::Symbol)
 #     if sym === :parsed
 #         ex = getfield(obj,:raw)

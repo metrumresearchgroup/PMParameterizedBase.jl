@@ -3,6 +3,7 @@ using Base
 using ComponentArrays
 using Suppressor
 Base.@kwdef struct MRGModelRepr
+      pFcn::Function = () -> ()
       initFcn::Function = () -> ()
       __Header::Vector{Any} = Vector{Any}()
       model::Function = () -> ()
@@ -29,6 +30,8 @@ function (mdl::MRGModel)(du, u, p, t; inputs = :default)
         mdl.f(du, u, p, t, inputs)
     end
 end
+
+
 
 
 Base.@kwdef mutable struct MdlBlock
@@ -64,29 +67,23 @@ macro model(md)
 
     # Evalulate the initBlock in a local scope using 'let' to check for any errors before checking for icDdtAgreemnt and parameter overwrites
     initBlockEval = initBlock.Block
-    initTest = quote
-        let
-            $initBlockEval
-        end
+    # println(initBlock.Block)
+    # initTest = quote
+    #     let
+    #         $initBlockEval
+    #     end
 
-    end
-    eval(initTest)
+    # end
+    # eval(initTest)
 
-    # Check for IC/derivative agreement
-    icDdtAgreement(icBlock, derivativeBlock)
 
-    # Check for and warn if parameters are being overwritten in body. 
-    paramOverwrite(parameterBlock, algebraicBlock)
 
-    # Check for and warn if any other initial assignments are being overwritten in the body
-    paramOverwrite(initAssignment, algebraicBlock)
 
-    initFcn = buildInit(initBlock, parameterBlock, constantBlock, repeatedBlock, icBlock)
-
+    pFcn,initFcn = buildInit(initBlock, parameterBlock, constantBlock, repeatedBlock, icBlock)
 
     # Get initial param vector and non-zero ICs
-    # params = :($initFcn)
-    init = :(@suppress $initFcn)
+    # params = :($pFcn)
+    params = :(@suppress $pFcn)
     # params = ComponentArray{Number}()
     # u = ComponentArray{Number}()
 
@@ -95,10 +92,19 @@ macro model(md)
     # bodyFcn = :(() -> ())
     bodyFcnExpr = :($bodyBlock.Block)
     # bodyFcnExpr = :(() -> ())
-    mdl = :(MRGModelRepr($initFcn, $arguments, $bodyFcn, $bodyFcnExpr, $inputs))
+    mdl = :(MRGModelRepr($pFcn, $initFcn, $arguments, $bodyFcn, $bodyFcnExpr, $inputs))
     # Build modmrg
-    modmrg = :(MRGModel(parameters = ($init)().p, states = ($init)().ICs, model = $mdl, f = $(mdl).model))
+    modmrg = :(MRGModel(parameters = ($pFcn)().p, states = ($initFcn)(($pFcn)().p).ICs, model = $mdl, f = $(mdl).model))
+        # Check for IC/derivative agreement
+        :(icDdtAgreement($icBlock, $derivativeBlock))
+
+        # Check for and warn if parameters are being overwritten in body. 
+        :(paramOverwrite($parameterBlock, $algebraicBlock))
+    
+        # Check for and warn if any other initial assignments are being overwritten in the body
+        :(paramOverwrite($initAssignment, $algebraicBlock))
     return modmrg
 
 end
 
+ 
