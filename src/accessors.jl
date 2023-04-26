@@ -1,5 +1,5 @@
 using MacroTools
-using PMxSim
+using ParameterizedModels
 # @inline Base.getproperty(obj::MRGModel, s::Symbol) = _getindex(Base.maybeview, x, Val(s))
 
 

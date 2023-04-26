@@ -1,5 +1,5 @@
 using Revise
-using PMxSim
+using ParameterizedModels
 using Unitful
 
 function fooey(x)
@@ -14,7 +14,6 @@ mdl =  @model function test(du, u, p, t)
         @parameter a = 2*aa
         @parameter b = 3*a
         @parameter c = 4
-
         @IC begin
             x = a
             y = 0.0

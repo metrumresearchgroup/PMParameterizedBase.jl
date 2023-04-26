@@ -9,15 +9,17 @@ function icDdtAgreement(icBlock, derivBlock)
             error("No initial condition found for $deriv")
         end
     end
+    return true
 end
 
 
 function paramOverwrite(paramBlock, algebraicBlock)
-    for (i, av) in enumerate(algebraicBlock.names)
+    for (i, av) in enumerate(unique(algebraicBlock.names))
         if av ∈ paramBlock.names
             lnn = algebraicBlock.LNNVector[i]
             type  = paramBlock.type
             @warn "Overwriting $type $av in main body of model at $(lnn.file):$(lnn.line)"
         end
     end
+    return true
 end

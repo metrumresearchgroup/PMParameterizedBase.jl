@@ -1,4 +1,4 @@
-using PMxSim
+using ParameterizedModels
 using ComponentArrays
 using Parameters: @unpack
 using MacroTools

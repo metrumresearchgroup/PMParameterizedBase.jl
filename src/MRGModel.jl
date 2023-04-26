@@ -1,7 +1,14 @@
-using PMxSim
+using ParameterizedModels
 using Base
 using ComponentArrays
 using Suppressor
+
+Base.@kwdef struct MRGModelChecks
+    icDdtAgreementCheck::Bool = true
+    paramOverwriteCheck::Bool = true
+    initOverwriteCheck::Bool = true
+end
+
 Base.@kwdef struct MRGModelRepr
       pFcn::Function = () -> ()
       initFcn::Function = () -> ()
@@ -9,6 +16,7 @@ Base.@kwdef struct MRGModelRepr
       model::Function = () -> ()
       parsed::Expr = :()
       inputs::ComponentArray{<:Number} = ComponentArray{<:Number}()
+      checks::MRGModelChecks = MRGModelChecks()
 end
 
 
@@ -92,17 +100,23 @@ macro model(md)
     # bodyFcn = :(() -> ())
     bodyFcnExpr = :($bodyBlock.Block)
     # bodyFcnExpr = :(() -> ())
-    mdl = :(MRGModelRepr($pFcn, $initFcn, $arguments, $bodyFcn, $bodyFcnExpr, $inputs))
+
+    modelChecks = :(MRGModelChecks(icDdtAgreementCheck = icDdtAgreement($icBlock, $derivativeBlock), 
+                                 paramOverwriteCheck =  paramOverwrite($parameterBlock, $algebraicBlock),
+                                 initOverwriteCheck = paramOverwrite($initAssignment, $algebraicBlock)))
+    
+    mdl = :(MRGModelRepr($pFcn, $initFcn, $arguments, $bodyFcn, $bodyFcnExpr, $inputs, $modelChecks))
     # Build modmrg
     modmrg = :(MRGModel(parameters = ($pFcn)().p, states = ($initFcn)(($pFcn)().p).ICs, model = $mdl, f = $(mdl).model))
         # Check for IC/derivative agreement
-        :(icDdtAgreement($icBlock, $derivativeBlock))
 
-        # Check for and warn if parameters are being overwritten in body. 
-        :(paramOverwrite($parameterBlock, $algebraicBlock))
+        # :(icDdtAgreement($icBlock, $derivativeBlock))
+
+        # # Check for and warn if parameters are being overwritten in body. 
+        # :(paramOverwrite($parameterBlock, $algebraicBlock))
     
-        # Check for and warn if any other initial assignments are being overwritten in the body
-        :(paramOverwrite($initAssignment, $algebraicBlock))
+        # # Check for and warn if any other initial assignments are being overwritten in the body
+        # :(paramOverwrite($initAssignment, $algebraicBlock))
     return modmrg
 
 end

@@ -1,6 +1,7 @@
 module ParameterizedModels
 using MacroTools
 using ComponentArrays
+using DifferentialEquations
 
 # Write your package code here.
 
@@ -52,6 +53,16 @@ export @repeated
 export @IC
 export @ddt
 export ComponentArray
+
+function solve(model::MRGModel, alg::Union{DEAlgorithm,Nothing}=nothing; kwargs...)
+    odefunc = DifferentialEquations.ODEFunction(model; syms = keys(model.states), indepsym = :t, paramsyms = keys(model.parameters))
+    problem = ODEProblem(odefunc, model.states, model.tspan, model.parameters)
+    sol = DifferentialEquations.solve(problem, alg; kwargs...)
+    return sol
+end
+
+
+
 
 # Base.show(io::IO, mdl::MRGModel) = print(io, typeof(mdl), ", ", mdl.parameters, ", ", mdl.states, " ",  mdl.tspan, ", ", mdl.model, ", ", MacroTools.striplines(mdl.model),")")
 
