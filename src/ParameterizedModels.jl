@@ -1,4 +1,4 @@
-module PMxSim
+module ParameterizedModels
 using MacroTools
 using ComponentArrays
 
