@@ -105,7 +105,7 @@ macro model(md)
                                  paramOverwriteCheck =  paramOverwrite($parameterBlock, $algebraicBlock),
                                  initOverwriteCheck = paramOverwrite($initAssignment, $algebraicBlock)))
     
-    mdl = :(MRGModelRepr($pFcn, $initFcn, $arguments, $bodyFcn, $bodyFcnExpr, $inputs, $modelChecks))
+    mdl = :(MRGModelRepr($pFcn, $initFcn, $arguments, $(esc(bodyFcn)), $bodyFcnExpr, $inputs, $modelChecks))
     # Build modmrg
     modmrg = :(MRGModel(parameters = ($pFcn)().p, states = ($initFcn)(($pFcn)().p).ICs, model = $mdl, f = $(mdl).model))
         # Check for IC/derivative agreement
