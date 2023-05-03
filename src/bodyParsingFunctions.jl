@@ -116,6 +116,7 @@ function insertParameters(bodyBlock, parameterBlock, arguments)
     body = bodyBlock.Block
     for (i,p) in enumerate(parameterBlock.names)
         expr_in = :($p = $psym.$p)
+        # expr_in = :($p = $psym[$i])
         insert!(body.args[2].args, 2+(i-1), expr_in)
     end
     bodyBlock.Block = body
@@ -127,6 +128,7 @@ function insertStates(bodyBlock, icBlock, arguments)
     body = bodyBlock.Block
     for (i,u) in enumerate(icBlock.names)
         expr_in = :($u = $usym.$u)
+        # expr_in = :($u = $usym)
         insert!(body.args[2].args, 2+(i-1), expr_in)
     end
     bodyBlock.Block = body

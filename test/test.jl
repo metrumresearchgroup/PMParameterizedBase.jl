@@ -42,7 +42,7 @@ mdl2 = @model function test2(du, u, p, t)
     end
     rhs1 = 10.0*k
 
-    @ddt x = rhs * (y - x)
+    @ddt x = rhs1 * (y - x)
     @ddt y = x * (28.0 - u[3]) - y
     @ddt z  = x * y - (8 / 3) * z
     end

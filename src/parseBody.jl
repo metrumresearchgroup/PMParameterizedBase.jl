@@ -6,7 +6,7 @@ function parseBody(modfn, inputSym, arguments)
     
     bodyBlock.Block = MacroTools.postwalk(x -> @capture(x, @init init_) ? nothing : x, modfn) # Remove @init block(s) from model. 
     
-    model_function = MacroTools.postwalk(x -> getDdt(x, derivativeBlock, inputSym), bodyBlock.Block) # Update the parameterBlock properties by walking through the expression tree
+    model_function = MacroTools.postwalk(x -> getDdt(x, derivativeBlock, inputSym), bodyBlock.Block) # Update the bodyBlock properties by walking through the expression tree
 
     
     algebraicBlock.Block = MacroTools.postwalk(x -> @capture(x, @ddt ddt_) ? nothing : x, bodyBlock.Block)  # Remove @ddt definitions
