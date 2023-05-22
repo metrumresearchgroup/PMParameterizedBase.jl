@@ -199,7 +199,49 @@ function getConstantsFromBlock(x, constBlock)
 end
 
 
+# Get only @observed block(s) from @model
+function getInitObserved(x, Block::MdlBlock)
+    if typeof(x) == LineNumberNode # Check for LineNumberNodes and update MdlBlock LNN
+        Block.LNN = x
+    end
+    if @capture(x, @observed observed_) # If an @parameter block is found, push contents to MdlBlock.Block
+        if typeof(observed) == Symbol
+            LNN = Block.LNN
+            error("@observed definition must take form of a = b at $(LNN.file):$(LNN.line)")
+            return nothing
+        else
+            constargs = unblock.(constant.args)
+            push!(Block.Block.args, constargs...)
+            MacroTools.prewalk(x -> getConstantsFromBlock(x, Block), constant) # Grab assignments within the @parameter block
+            return nothing
+        end
+    else
+        return x
+    end
+end
 
+
+function getInitObservedFromBlock(x, obsBlock)
+    if isexpr(x) && ((@capture(x, a_ = b_) || @capture(x, a_ .= b_) || @capture(x, @__dot__ a_ = b_)))
+        if isexpr(a)
+            LNN = constBlock.LNN
+            error("@constant definition must be of the form a = b. Cannot use index or field/property at $(LNN.file):$(LNN.line)")
+        else
+            push!(constBlock.names, a)
+            push!(constBlock.LNNVector, constBlock.LNN)
+
+            return nothing
+        end
+    elseif typeof(x) == Symbol
+        LNN = constBlock.LNN
+        error("Unrecognized @constant definition. Must be a variable assignment (i.e a = b) at $(LNN.file):$(LNN.line)")
+    else
+        if typeof(x) == LineNumberNode
+            constBlock.LNN = x
+        end
+        return x
+    end
+end
 
 
 

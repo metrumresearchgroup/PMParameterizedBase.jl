@@ -40,7 +40,11 @@ macro repeated(min)
 end
 
 macro constant(min)
-    return esc(constant)
+    return esc(min)
+end
+
+macro observed(min)
+    return esc(min)
 end
 
 model_warnings = true
@@ -52,6 +56,9 @@ export @variable
 export @repeated
 export @IC
 export @ddt
+export @observed
+export @constant
+export @repeated
 export ComponentArray
 
 function solve(model::MRGModel, alg::Union{DEAlgorithm,Nothing}=nothing; kwargs...)
