@@ -1,45 +1,18 @@
 using ParameterizedModels
-using Base
-using ComponentArrays
-using Suppressor
-
-Base.@kwdef struct MRGModelChecks
-    icDdtAgreementCheck::Bool = true
-    paramOverwriteCheck::Bool = true
-    initOverwriteCheck::Bool = true
-end
-
-Base.@kwdef struct MRGModelRepr
-      pFcn::Function = () -> ()
-      initFcn::Function = () -> ()
-      __Header::Vector{Any} = Vector{Any}()
-      model::Function = () -> ()
-      parsed::Expr = :()
-      inputs::ComponentArray{<:Number} = ComponentArray{<:Number}()
-      checks::MRGModelChecks = MRGModelChecks()
-end
+using ModelingToolkit
+using Symbolics
 
 
 
-CAorFcn = Union{ComponentArray{<:Number}, Function}
+
 Base.@kwdef mutable struct MRGModel
-    parameters::CAorFcn = ComponentArray{Number}()
-    states::CAorFcn = ComponentArray{Number}()
+    parameters::Vector{Num}
+    states::Vector{Num}
+    independent_variables::Vector{Num}
+    ICs::Vector{Pair{Num, Float64}}
     tspan::Tuple = (0.0, 1.0)
-    model::MRGModelRepr = MRGModelRepr()
-    f::Function = () -> ()
+    model::ModelingToolkit.AbstractSystem
 end
-
-# Add a functor for the MRGModel struct to create call to actual model function with substituted inputs.
-function (mdl::MRGModel)(du, u, p, t; inputs = :default)
-    if inputs == :default
-        mdl.f(du, u, p, t, mdl.model.inputs)
-    else
-        mdl.f(du, u, p, t, inputs)
-    end
-end
-
-
 
 
 Base.@kwdef mutable struct MdlBlock
@@ -47,8 +20,7 @@ Base.@kwdef mutable struct MdlBlock
     Block::Expr = Expr(:block)
     LNN::LineNumberNode = LineNumberNode(0)
     LNNVector::Vector{LineNumberNode} = Vector{LineNumberNode}()
-    type::String = ""
-    BlockSymbol::Symbol = :nothing
+    type::Symbol = Symbol()
 end
 
 
@@ -59,66 +31,147 @@ Base.@kwdef mutable struct WarnBlock
     prev::Union{String,Nothing} = ""
 end
 
-macro model(md)
-    # Parse header to get args and kwargs
-    args, kwargs, f, arguments, body = parseHeader(md)
 
-    # Parse initBlock to get parameters, algebraic expressions, dynamic variables and state variables
-    initBlock, parameterBlock, icBlock, repeatedBlock, constantBlock, initAssignment = parseInit(md, arguments)
-    # Parse body
-    inputSym = gensym("input")
-    bodyBlock, derivativeBlock, algebraicBlock, observedBlock, inputs = parseBody(md, inputSym, arguments)
-    # println(bodyBlock)
-    # Insert parameters into function body
-    insertParameters(bodyBlock, parameterBlock, arguments)
-    insertStates(bodyBlock, icBlock, arguments)
 
-    # Evalulate the initBlock in a local scope using 'let' to check for any errors before checking for icDdtAgreemnt and parameter overwrites
-    initBlockEval = initBlock.Block
-    # println(initBlock.Block)
-    # initTest = quote
-    #     let
-    #         $initBlockEval
-    #     end
+macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, AdditionalIndepVars... = nothing)
+    outexpr = quote # Create a quote to return our output expression
+    # Create an empty array to hold all parameters
+    pars = Vector{Num}(undef, 0)
+    # Create an empty array to hold all variables 
+    vars = Vector{Num}(undef, 0)
+    # Create an empty array to hold the independent variables
+    ivs = Vector{Num}(undef, 0)
+    # Create an empty array to hold boundary conditions for PDESystems
+    bcs = Vector{Num}(undef, 0)
+    # Create an empty array to hold domains for PDESystems
+    domain = Vector{Num}(undef, 0)
+    # Create an empty MRGModel object to hold our parameters, states, IVs, etc. 
+    ModelingToolkit.@parameters t
+    mdl = MRGModel(
+        parameters = Vector{Num}(undef, 0),
+        states = Vector{Num}(undef, 0),
+        ICs = Vector{Pair{Num, Float64}}(undef, 0),
+        independent_variables = Vector{Num}(undef,0),
+        tspan = (0.0, 1.0),
+        model = @named $Name = ODESystem([],t)
+    )
 
+    eqs = Vector{Equation}(undef, 0)
+    # Grab everything within the @model block and run it to populate mdl block, expand other macros etc. 
+    $MdlEx
+
+    # if length($ivs) == 1
+
+    @named $Name = ODESystem(eqs, ivs[1], vars, pars, tspan=(0.0, 1.0))
+    # else
+        # if length($bcs) == 0
+            # error("Need to define boundary conditions for PDEs")
+        # end
+        # if length($domain) == 0
+            # error("Need to define variable domain(s) for PDEs")
+        # end
+        # @named $Name = PDESystem($eqs, $bcs, $domain, $ivs, $dvs, $pars)
     # end
-    # eval(initTest)
 
+    mdl.model = $Name # Return the model 
+    mdl
+    end
 
-
-
-    pFcn,initFcn = buildInit(initBlock, parameterBlock, constantBlock, repeatedBlock, icBlock)
-
-    # Get initial param vector and non-zero ICs
-    # params = :($pFcn)
-    params = :(@suppress $pFcn)
-    # params = ComponentArray{Number}()
-    # u = ComponentArray{Number}()
-
-    # Build MRGModelRepr object
-    bodyFcn = bodyBlock.Block
-    # bodyFcn = :(() -> ())
-    bodyFcnExpr = :($bodyBlock.Block)
-    # bodyFcnExpr = :(() -> ())
-
-    modelChecks = :(MRGModelChecks(icDdtAgreementCheck = icDdtAgreement($icBlock, $derivativeBlock), 
-                                 paramOverwriteCheck =  paramOverwrite($parameterBlock, $algebraicBlock),
-                                 initOverwriteCheck = paramOverwrite($initAssignment, $algebraicBlock)))
-    
-    mdl = :(MRGModelRepr($pFcn, $initFcn, $arguments, $(esc(bodyFcn)), $bodyFcnExpr, $inputs, $modelChecks))
-    # Build modmrg
-    modmrg = :(MRGModel(parameters = ($pFcn)().p, states = ($initFcn)(($pFcn)().p).ICs, model = $mdl, f = $(mdl).model))
-        # Check for IC/derivative agreement
-
-        # :(icDdtAgreement($icBlock, $derivativeBlock))
-
-        # # Check for and warn if parameters are being overwritten in body. 
-        # :(paramOverwrite($parameterBlock, $algebraicBlock))
-    
-        # # Check for and warn if any other initial assignments are being overwritten in the body
-        # :(paramOverwrite($initAssignment, $algebraicBlock))
-    return modmrg
-
+    return outexpr
 end
 
+"""
+Macro to define additional independent variables
+# Examples
+```jldoctest
+julia> @IVs x y z
+3-element Vector{Num}:
+ x
+ y
+ z
+```
+"""
+macro IVs(ivs_in...)
+
+ptmp = Symbolics._parse_vars(:parameters,
+Real,
+ivs_in,
+ModelingToolkit.toparam) |> esc
+quote
+append!(mdl.independent_variables, $ptmp)
+append!(ivs, $ptmp)
+end
+end
+
+macro parameters(ps...)
+    out = Symbolics._parse_vars(:parameters,
+    Real,
+    ps,
+    ModelingToolkit.toparam) |> esc
+    quote 
+        append!(mdl.parameters, $out)
+        append!(pars, $out)
+    end
+end
+
+macro variables(xs...)
+    out = esc(ModelingToolkit._parse_vars(:variables, Real, xs))
+    quote
+        append!(mdl.states, $out)
+        append!(vars, $out)
+    end
+end
+
+
+indeptupletype = Tuple{Real,Vararg{Num}} # Create a Tuple type for independent variables
+indeptype = Union{Num, indeptupletype} # Create a union of Numeric and indeptupletype for the derivative macro
+# macro D(indepvars::indeptype, formula)
+macro D(indepvars, formula)
+    type = :odesys
+    if typeof(indepvars) == Symbol
+        indepvars = [indepvars]
+        type = :odesys
+    elseif indepvars.head != :tuple
+        error("Error in @D. Indepvariables must take the form of a parameter or tuple of parameters")
+    elseif indepvars.head == :tuple
+        type = :pdesys
+    else
+        error("Unknown error")
+    end
+
+    outex = if type == :odesys quote
+            # Loop over variables and check to see if any derivative variables are in parameters instead of IVs
+            for iv in $indepvars
+                if Symbol(iv) in Symbol.(mdl.parameters)
+                    error("Trying to differentiate with respect to parameter $iv. Please differentiate with respect to @IVs")
+                elseif Symbol(iv) in Symbol.(mdl.states)
+                    error("Trying to differentiate with respect to state $iv. Please differentiate with respect to @IVs")
+                end
+            end
+            lhs = $formula.lhs
+            rhs = $formula.rhs
+            Doperator = Differential($(esc(indepvars[1])))
+            push!(eqs, Doperator(lhs) ~ rhs)
+            end
+        elseif type == :pdesys quote
+        # Loop over variables and check to see if any derivative variables are in parameters instead of IVs
+        for iv in $indepvars
+            if Symbol(iv) in Symbol.(mdl.parameters)
+                error("Trying to differentiate with respect to parameter $iv. Please differentiate with respect to @IVs")
+            elseif Symbol(iv) in Symbol.(mdl.states)
+                error("Trying to differentiate with respect to state $iv. Please differentiate with respect to @IVs")
+            end
+        end
+        lhs = $formula.lhs
+        rhs = $formula.rhs
+        Doperator = prod(Differential.($(esc(indepvars))))
+        push!(eqs, Doperator(lhs) ~ rhs)
+        end
+    end
+end
+
+
+
  
+
+
