@@ -1,17 +1,51 @@
 using Revise
 using ParameterizedModels
+using ModelingToolkit
+using Unitful
 
-bar = @model TestMTK begin
+foo = @model TestMTKODE begin
     @IVs t
-    @parameters σ=10.0 ρ=28.0 β=8.0/3.0 IC = 1.0
-    @variables x(t)=IC y(t)=0.0 z(t)=0.0
-    @D(t, x~σ*(y-x))
-    @D(t, y~x*(ρ-z)-y)
-    @D(t, z~x*y - β*z)
+    Dt = Differential(t)
+    file = "Params.ym"
+
+
+    @parameters σ =10.0 [unit = u"m^3/s"]
+    
+    @parameters ρ=28.0 β=8.0/3.0
+    @parameters IC [location = "Params.yml"]
+
+
+    zz = 2.3
+
+    IC2 = IC * 200.0
+    @variables x(t)=IC2 y(t)=0.0 z(t)=0.0 q(t) [location="Params.yml"]
+
+    @eq Dt(x) ~ σ*(y-x)
+    a = x*(ρ-z)
+    @eq Dt(y) ~ a - y
+    @eq Dt(z) ~ x*y - β*z
+    @eq Dt(q) ~ 0.0
 end;
 
+
+
+
+
+
 using DifferentialEquations
-prob = ODEProblem(bar.model, [], (0.0, 1000.0))
+prob = ODEProblem(foo.model, [], (0.0, 1000.0))
 sol = solve(prob);
 plot(sol.t,sol[:x])
+
+bar = @model TestMTKPDE begin
+    @IVs t q
+    @parameters σ=10.0 ρ=28.0 β=8.0/3.0 IC = 1.0
+    @variables x(..) y(..) z(..)
+
+    # @D((q,t), x(q,t) ~ σ*(y(q,t)-x(q,t)))
+    # @D((q,t), y(q,t) ~ x(q,t)*(ρ-z(q,t))-y(q,t))
+    # @D((q,t), z(q,t) ~ x(q,t)*y(q,t) - β*z(q,t))
+end;
+
+
  
