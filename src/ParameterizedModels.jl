@@ -3,6 +3,7 @@ using MacroTools
 
 include("helpers.jl")
 include("MRGModel.jl")
+include("accessors.jl")
 # include("ParseAlgebraic.jl")
 # include("helpers.jl")
 
@@ -11,6 +12,9 @@ model_warnings = true
 
 export @model
 # using ModelingTookit.@variables
+
+# function solve(model::MRGModel, alg::Union{DEAlgorithm,Nothing}=nothing; kwargs...)
+    # odefunc = DifferentialEquations.ODEFunction(model; syms = keys(model.states))
 
 # function solve(model::MRGModel, alg::Union{DEAlgorithm,Nothing}=nothing; kwargs...)
 #     odefunc = DifferentialEquations.ODEFunction(model; syms = keys(model.states), indepsym = :t, paramsyms = keys(model.parameters))
