@@ -142,7 +142,7 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
             @named $Name = PDESystem(eqs, [], [], ivs, vars, vcat(pars,conspairs))
         end
         mdl.parameters = NamedTuple{tuple(Symbol.(pars)...)}(mrgpars)
-        # mdl.observed = convert.(Num, obs)
+        mdl.observed = convert.(Num, obs)
         mdl.observedNames = obsnames
 
 
@@ -250,25 +250,29 @@ end
 
 
 macro observed(obsin)
-    out = Symbolics._parse_vars(:parameters,
+    out = ModelingToolkit._parse_vars(:parameters,
                     Real,
-                    [obsin]) |> esc
+                    [obsin],
+                    ModelingToolkit.toparam) |> esc
 
     q_out = quote
         for observ in $out
                 # otmp = MRGVal(Symbol(con), ModelingToolkit.getdefault(con))
                 push!(obsnames, observ)
+                println(observ)
+                # println(ModelingToolkit.getdefault(observ))
+                push!(obs, ModelingToolkit.getdefault(observ))
         end
-        @observed2 $obsin
+        $obsin
     end
     return q_out
 end
 
-macro observed2(obsin)
+# macro observed2(obsin)
     # for expr in obsin
-        MacroTools.postwalk(x -> (@capture(x, a_ = b_) || @capture(x, a_ .= b_) || @capture(x, @__dot__ a_ = b_)) ? (x; quote $x; push!(obs, $a) end) : x, esc(obsin))
+        # MacroTools.postwalk(x -> (@capture(x, a_ = b_) || @capture(x, a_ .= b_) || @capture(x, @__dot__ a_ = b_)) ? (x; quote $x; push!(obs, $a) end) : x, esc(obsin))
     # end
-end
+# end
 # # MacroTools.postwalk(x -> (@capture(x, a_ = b_) || @capture(x, a_ .= b_) || @capture(x, @__dot__ a_ = b_)) ? (quote push!(obsnames, @text_str $a); $x; push!(obs, $a) end) : x, esc(obsin))
 
 

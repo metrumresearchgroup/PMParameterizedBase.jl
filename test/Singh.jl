@@ -75,12 +75,11 @@ singh = @model Singh begin
         (TV_mm3(t)=0.0), [unit = u"mm^3", description = "tumor volume [mm^3]"]
      end
           
-     @parameters a = 2
+    #  @parameters a = 2
      Rtumor_tmp = (3 * TV_mm3/(4*pi))^(1/3)
      @observed begin
-        R_tumor = Rtumor_tmp
+        R_tumor = Rtumor_tmp#$(3 * TV_mm3/(4*pi))^(1/3)
         a = e_Drug
-        b = a = 2.3
      end
 
 
