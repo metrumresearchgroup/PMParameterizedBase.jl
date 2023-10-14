@@ -5,7 +5,7 @@ using Symbolics
 using ComponentArrays
 import Unitful.@u_str
 using Unitful
-
+using SciMLBase
 
 
 # Add location metadata type to variables
@@ -27,17 +27,18 @@ Base.@kwdef mutable struct MRGModel
     model::ModelingToolkit.AbstractSystem
 end
 
-Base.@kwdef struct MRGVal
+Base.@kwdef mutable struct MRGVal <: Number
     name::Symbol
     value::Num
+    # _val::Num
+    _prob::Union{SciMLBase.AbstractODEProblem, SciMLBase.AbstractPDEProblem, Nothing} = nothing
 end
 
-Base.@kwdef struct MRGParamList
-    list::NamedTuple
-    names
+Base.@kwdef mutable struct MRGConst
+    name::Symbol
+    value::Num
+    # _val::Num
 end
-
-
 
 Base.@kwdef mutable struct MdlBlock
     names::Vector{Symbol} = Vector{Symbol}()
@@ -75,7 +76,7 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
 
         # Create an empty array to hold all constants
         cons = []
-        mrgcons = MRGVal[]
+        mrgcons = MRGConst[]
 
         # Create an empty array to hold all observed
         obs = []
@@ -89,15 +90,14 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
         bcs = Vector{Num}(undef, 0)
         # Create an empty array to hold domains for PDESystems
         domain = Vector{Num}(undef, 0)
-        # Create an empty MRGModel object to hold our parameters, states, IVs, etc. 
-        ModelingToolkit.@parameters t # NEED TO REMOVE THIS LATER
+        # Create an empty MRGModel object to hold our parameters, states, IVs, etc.
+        
+        
+
+        ModelingToolkit.@parameters t 
 
         mdl = MRGModel(
-            # parameters = Vector{Num}(undef, 0),
-            # parameters = [],
-            # states = Vector{Num}(undef, 0),
             states = [],
-            # ICs = Vector{Pair{Num, Float64}}(undef, 0),
             ICs = [],
             independent_variables = Vector{Num}(undef,0),
             tspan = (0.0, 1.0),
@@ -117,20 +117,13 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
 
 
         if length(ivs) == 1
-            conspairs = [Pair(cons[i], mrgcons[i].value) for i in 1:lastindex(cons)]
-            parpairs = [Pair(pars[i], mrgpars[i].value) for i in 1:lastindex(pars)]
+            conspairs = [Pair(cons[i], ModelingToolkit.getdefault(mrgcons[i].value)) for i in 1:lastindex(cons)]
+            parpairs = [Pair(pars[i], ModelingToolkit.getdefault(mrgpars[i].value)) for i in 1:lastindex(pars)]
 
             @named $Name = ODESystem(eqs, ivs[1], vars, vcat(pars, cons), tspan=(0.0, 1.0))
             prob = ODEProblem($Name,[], (0.0, 1.0), vcat(parpairs,conspairs))
             mdl.odeproblem = prob
-            # [mg_to_g => 1E-3,
-            # mol_to_nmol => 1E9,
-            # ug_to_g => 1E-6,
-            # mL_to_L => 1E-3,
-            # um_to_cm => 1E-4,
-            # day_to_h => 24,
-            # cm3_to_mm3 => 1E3,
-            # mm3_to_L => 1E-6])
+
         else
             # if length($bcs) == 0
                 # error("Need to define boundary conditions for PDEs")
@@ -142,6 +135,13 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
             @named $Name = PDESystem(eqs, [], [], ivs, vars, vcat(pars,conspairs))
         end
         mdl.parameters = NamedTuple{tuple(Symbol.(pars)...)}(mrgpars)
+        mdl.states = NamedTuple{tuple([var.val.metadata[ModelingToolkit.VariableSource][2] for var in vars]...)}(mrgvars)
+        for p in mdl.parameters
+            p._prob = mdl.odeproblem
+        end
+        for s in mdl.states
+            s._prob = mdl.odeproblem
+        end
         mdl.observed = convert.(Num, obs)
         mdl.observedNames = obsnames
 
@@ -187,7 +187,7 @@ macro parameters(ps...)
             if !(ModelingToolkit.hasdefault(param))
                 error("Parameter $param must have a default value")
             else
-                ptmp = MRGVal(Symbol(param), ModelingToolkit.getdefault(param))
+                ptmp = MRGVal(name = Symbol(param), value = param)#, _val = param)
                 push!(mrgpars, ptmp)
             end
         end
@@ -204,9 +204,10 @@ macro variables(xs...)
             if !(ModelingToolkit.hasdefault(var))
                 error("State $var must have an initial value")
             else
-                vtmp = MRGVal(Symbol(var), ModelingToolkit.getdefault(var))
+                vtmp = MRGVal(name = var.val.metadata[ModelingToolkit.VariableSource][2], value = var)#, _val = var)
                 push!(mrgvars, vtmp)
             end
+            # push!(vars, var.val.metadata[ModelingToolkit.VariableSource][2])
         end
         append!(vars, $out)
 
@@ -219,13 +220,12 @@ macro constants(cs...)
                     Real,
                     cs,
                     ModelingToolkit.toparam) |> esc
-    # out = esc(ModelingToolkit._parse_vars(:constants, Real, cs))
     q_out = quote
         for con in $out
             if !(ModelingToolkit.hasdefault(con))
                 error("Constant $con must have a value")
             else
-                ctmp = MRGVal(Symbol(con), ModelingToolkit.getdefault(con))
+                ctmp = MRGConst(name = Symbol(con), value = con)#, _val = con)
                 push!(mrgcons, ctmp)
             end
         end
@@ -257,23 +257,13 @@ macro observed(obsin)
 
     q_out = quote
         for observ in $out
-                # otmp = MRGVal(Symbol(con), ModelingToolkit.getdefault(con))
                 push!(obsnames, observ)
-                println(observ)
-                # println(ModelingToolkit.getdefault(observ))
                 push!(obs, ModelingToolkit.getdefault(observ))
         end
         $obsin
     end
     return q_out
 end
-
-# macro observed2(obsin)
-    # for expr in obsin
-        # MacroTools.postwalk(x -> (@capture(x, a_ = b_) || @capture(x, a_ .= b_) || @capture(x, @__dot__ a_ = b_)) ? (x; quote $x; push!(obs, $a) end) : x, esc(obsin))
-    # end
-# end
-# # MacroTools.postwalk(x -> (@capture(x, a_ = b_) || @capture(x, a_ .= b_) || @capture(x, @__dot__ a_ = b_)) ? (quote push!(obsnames, @text_str $a); $x; push!(obs, $a) end) : x, esc(obsin))
 
 
 
