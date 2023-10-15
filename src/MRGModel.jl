@@ -25,12 +25,14 @@ Base.@kwdef mutable struct MRGModel
     observed
     observedNames
     model::ModelingToolkit.AbstractSystem
+    _valmap::Union{Vector{Pair{Num}}, Nothing} = nothing
 end
 
 Base.@kwdef mutable struct MRGVal <: Number
     name::Symbol
     value::Num
     # _val::Num
+    _valmap::Union{Vector{Pair{Num}}, Nothing} = nothing
     _prob::Union{SciMLBase.AbstractODEProblem, SciMLBase.AbstractPDEProblem, Nothing} = nothing
 end
 
@@ -119,11 +121,11 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
         if length(ivs) == 1
             conspairs = [Pair(cons[i], ModelingToolkit.getdefault(mrgcons[i].value)) for i in 1:lastindex(cons)]
             parpairs = [Pair(pars[i], ModelingToolkit.getdefault(mrgpars[i].value)) for i in 1:lastindex(pars)]
-
+            consparpairs = vcat(conspairs, parpairs)
             @named $Name = ODESystem(eqs, ivs[1], vars, vcat(pars, cons), tspan=(0.0, 1.0))
-            prob = ODEProblem($Name,[], (0.0, 1.0), vcat(parpairs,conspairs))
+            prob = ODEProblem($Name,[], (0.0, 1.0), consparpairs)
             mdl.odeproblem = prob
-
+            mdl._valmap = consparpairs
         else
             # if length($bcs) == 0
                 # error("Need to define boundary conditions for PDEs")
@@ -137,10 +139,10 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
         mdl.parameters = NamedTuple{tuple(Symbol.(pars)...)}(mrgpars)
         mdl.states = NamedTuple{tuple([var.val.metadata[ModelingToolkit.VariableSource][2] for var in vars]...)}(mrgvars)
         for p in mdl.parameters
-            p._prob = mdl.odeproblem
+            p._valmap = mdl._valmap
         end
         for s in mdl.states
-            s._prob = mdl.odeproblem
+            s._valmap = mdl._valmap
         end
         mdl.observed = convert.(Num, obs)
         mdl.observedNames = obsnames
@@ -187,7 +189,7 @@ macro parameters(ps...)
             if !(ModelingToolkit.hasdefault(param))
                 error("Parameter $param must have a default value")
             else
-                ptmp = MRGVal(name = Symbol(param), value = param)#, _val = param)
+                ptmp = MRGVal(name = Symbol(param), value = param, _valmap = nothing)#, _val = param)
                 push!(mrgpars, ptmp)
             end
         end
@@ -204,7 +206,7 @@ macro variables(xs...)
             if !(ModelingToolkit.hasdefault(var))
                 error("State $var must have an initial value")
             else
-                vtmp = MRGVal(name = var.val.metadata[ModelingToolkit.VariableSource][2], value = var)#, _val = var)
+                vtmp = MRGVal(name = var.val.metadata[ModelingToolkit.VariableSource][2], value = var, _valmap = nothing)#, _val = var)
                 push!(mrgvars, vtmp)
             end
             # push!(vars, var.val.metadata[ModelingToolkit.VariableSource][2])

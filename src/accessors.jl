@@ -1,3 +1,6 @@
+
+
+
 # TYPE CONVERSION RULES ARE AWESOME.
 function Base.convert(::Type{T}, x::MRGVal) where {T<:Number}
     if T === MRGVal
@@ -28,6 +31,7 @@ function getExpr(param::MRGVal) # Grab the expression for the parameter
 end
 
 function getUnit(param::MRGVal)
+    println(fooeyfooey)
     return ModelingToolkit.get_unit(param.value)
 end
 
