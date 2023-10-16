@@ -48,8 +48,16 @@ function getDefault(value::NumValue)
 end
 
 
-function getExpr(value::NumValue) # Grab the expression for the parameter
-    return ModelingToolkit.getdefault(value.value)
+function getDefaultExpr(value::NumValue) # Grab the expression for the parameter
+    return ModelingToolkit.getdefault(value._defaultExpr)
+end
+
+function Base.setproperty!(x::NumValue, sym::Symbol, v::Real)
+    if sym == :_defaultExprs
+        error("Field $sym is immutable")
+    else
+        setfield!(x, sym, v)
+    end
 end
 
 function getUnit(value::NumValue)

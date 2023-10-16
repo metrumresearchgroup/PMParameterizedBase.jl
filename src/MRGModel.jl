@@ -19,6 +19,7 @@ Base.@kwdef mutable struct NumValue <: Number
     value::Num
     _valmap::Dict{Num, Num}
     _uvalues::Dict{Num, Real}
+    _defaultExpr::Num
 end
 
 Base.@kwdef mutable struct ModelValues <: Number
@@ -26,6 +27,7 @@ Base.@kwdef mutable struct ModelValues <: Number
     _values::Dict{Symbol, NumValue}
     _valmap::Dict{Num, Num}
     _uvalues::Dict{Num, Real}
+    # _defaultExprs::Dict{Num, Num}
     # _puvalues::Dict{Num, Real}
     # _suvalues::Dict{Num, Real}
 end
@@ -162,12 +164,13 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
             p = mdl.parameters._values[pkey]
             p._valmap = mdl.parameters._valmap
             p._uvalues = mdl._uvalues
+            p._defaultExpr = mdl.parameters._values[pkey].value
         end
         for skey in keys(mdl.states._values)
             s = mdl.states._values[skey]
             s._valmap = mdl.states._valmap
             s._uvalues = mdl._uvalues
-            # s._puvalues = mdl.parameters._uvalues
+            s._defaultExpr = mdl.states._values[skey].value
         end
         mdl.observed = convert.(Num, obs)
         mdl.observedNames = obsnames
@@ -215,7 +218,7 @@ macro parameters(ps...)
                 error("Parameter $param must have a default value")
             else
                 # ptmp = MRGVal(name = Symbol(param), value = param, _valmap = nothing)#, _val = param)
-                ptmp = NumValue(name = Symbol(param), value = param, _valmap = Dict{Symbol, Num}(), _uvalues = Dict{Symbol, Real}())
+                ptmp = NumValue(name = Symbol(param), value = param, _valmap = Dict{Symbol, Num}(), _uvalues = Dict{Symbol, Real}(),_defaultExpr = Num(nothing))
                 push!(pars, ptmp)
             end
         end
@@ -233,7 +236,7 @@ macro variables(xs...)
                 error("State $var must have an initial value")
             else
                 # vtmp = MRGVal(name = var.val.metadata[ModelingToolkit.VariableSource][2], value = var, _valmap = nothing)#, _val = var)
-                vtmp = NumValue(name = var.val.metadata[ModelingToolkit.VariableSource][2], value = var, _valmap = Dict{Symbol, Num}(), _uvalues = Dict{Symbol, Real}())
+                vtmp = NumValue(name = var.val.metadata[ModelingToolkit.VariableSource][2], value = var, _valmap = Dict{Symbol, Num}(), _uvalues = Dict{Symbol, Real}(),_defaultExpr = Num(nothing))
                 push!(vars, vtmp)
             end
             # push!(vars, var.val.metadata[ModelingToolkit.VariableSource][2])

@@ -139,5 +139,5 @@ end;
 
 
 
-using DifferentialEquations
+susing DifferentialEquations
 sol = solve(singh.odeproblem)

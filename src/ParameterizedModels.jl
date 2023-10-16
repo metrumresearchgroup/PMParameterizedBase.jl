@@ -14,6 +14,7 @@ export @model
 export getUnit
 export getDescription
 export getDefault
+export getDefaultExpr
 export getExpr
 # using ModelingTookit.@variables
 
