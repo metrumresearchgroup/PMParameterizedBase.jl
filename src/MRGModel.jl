@@ -14,51 +14,51 @@ struct VariableLoc end
 Symbolics.option_to_metadata_type(::Val{:location}) = VariableLoc
 
 
+Base.@kwdef mutable struct NumValue <: Number
+    name::Symbol
+    value::Num
+    _valmap::Dict{Num, Num}
+    _uvalues::Dict{Num, Real}
+end
+
+Base.@kwdef mutable struct ModelValues <: Number
+    names::Vector{Symbol}
+    _values::Dict{Symbol, NumValue}
+    _valmap::Dict{Num, Num}
+    _uvalues::Dict{Num, Real}
+    # _puvalues::Dict{Num, Real}
+    # _suvalues::Dict{Num, Real}
+end
+
+
+# Base.@kwdef mutable struct MRGStates <: Number
+
 Base.@kwdef mutable struct MRGModel
     # parameters#::MRGParamTuple
-    states#::Vector{Num}
+    states::ModelValues
     independent_variables#::Vector{Num}
     ICs#::Vector{Pair{Num, Float64}}
     tspan::Tuple = (0.0, 1.0)
-    parameters
+    parameters::ModelValues
     odeproblem
     observed
     observedNames
+    # _puvalues::Dict{Num, Real}
+    # _suvalues::Dict{Num, Real}
+    _uvalues::Dict{Num, Real}
     model::ModelingToolkit.AbstractSystem
-    _valmap::Union{Vector{Pair{Num}}, Nothing} = nothing
+
+    # _valmap::Union{Dict{Num, Union{SymbolicUtils.BasicSymbolic{Real}, Number}}, Nothing} = nothing
 end
 
-Base.@kwdef mutable struct MRGVal <: Number
-    name::Symbol
-    value::Num
-    # _val::Num
-    _valmap::Union{Vector{Pair{Num}}, Nothing} = nothing
-    _prob::Union{SciMLBase.AbstractODEProblem, SciMLBase.AbstractPDEProblem, Nothing} = nothing
-end
+
+
 
 Base.@kwdef mutable struct MRGConst
     name::Symbol
     value::Num
     # _val::Num
 end
-
-Base.@kwdef mutable struct MdlBlock
-    names::Vector{Symbol} = Vector{Symbol}()
-    Block::Expr = Expr(:block)
-    LNN::LineNumberNode = LineNumberNode(0)
-    LNNVector::Vector{LineNumberNode} = Vector{LineNumberNode}()
-    type::Symbol = Symbol()
-end
-
-
-Base.@kwdef mutable struct WarnBlock
-    LNN::LineNumberNode = LineNumberNode(0)
-    LNNVector::Vector{LineNumberNode} = Vector{LineNumberNode}()
-    defTypeDict::Dict{String,String} = Dict{String, String}()
-    prev::Union{String,Nothing} = ""
-end
-
-
 
 
 macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, AdditionalIndepVars... = nothing)
@@ -67,18 +67,20 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
         # Create an empty array to hold all parameters
         # pars = Vector{Num}(undef, 0)
         # pars = [ComponentVector{Float64}()]
-        pars = []
-        mrgpars = MRGVal[]
+        pars = NumValue[]
+        # parvalues = Num[]
+        # mrgpars = MRGVal[]
     
         
         # Create an empty array to hold all variables 
         # vars = Vector{Num}(undef, 0)
-        vars = []
-        mrgvars = MRGVal[]
+        vars = NumValue[]
+        # varvalues = Num[]
 
         # Create an empty array to hold all constants
-        cons = []
-        mrgcons = MRGConst[]
+        cons = Num[]
+        # consvalues = Real[]
+        # mrgcons = MRGConst[]
 
         # Create an empty array to hold all observed
         obs = []
@@ -87,26 +89,28 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
 
 
         # Create an empty array to hold the independent variables
-        ivs = Vector{Num}(undef, 0)
+        ivs = Num[]
         # Create an empty array to hold boundary conditions for PDESystems
-        bcs = Vector{Num}(undef, 0)
+        bcs = Num[]
         # Create an empty array to hold domains for PDESystems
-        domain = Vector{Num}(undef, 0)
+        domain = Num[]
         # Create an empty MRGModel object to hold our parameters, states, IVs, etc.
         
         
 
         ModelingToolkit.@parameters t 
-
         mdl = MRGModel(
-            states = [],
+            states = ModelValues(names = Symbol[], _values = Dict{Symbol,NumValue}(), _valmap = Dict{Num, Num}(), _uvalues = Dict{Num, Real}()),
             ICs = [],
             independent_variables = Vector{Num}(undef,0),
             tspan = (0.0, 1.0),
-            parameters = NamedTuple{tuple(pars...)}(mrgpars),
+            parameters = ModelValues(names = Symbol[], _values = Dict{Symbol,NumValue}(), _valmap = Dict{Num, Num}(), _uvalues = Dict{Num, Real}()),
             odeproblem = 2.0,
             observed = 2.0,
             observedNames = Symbol[],
+            # _puvalues = Dict{Num, Real}(),
+            # _suvalues = Dict{Num, Real}(),
+            _uvalues = Dict{Num, Real}(),
             model = @named $Name = ODESystem([],t)
         )
         # println(mdl.pstruct.names)
@@ -119,13 +123,28 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
 
 
         if length(ivs) == 1
-            conspairs = [Pair(cons[i], ModelingToolkit.getdefault(mrgcons[i].value)) for i in 1:lastindex(cons)]
-            parpairs = [Pair(pars[i], ModelingToolkit.getdefault(mrgpars[i].value)) for i in 1:lastindex(pars)]
+            conspairs = [Pair(cons[i], 
+                            ModelingToolkit.getdefault(cons[i])) for i in 1:lastindex(cons)]
+            parpairs = [Pair(pars[i].value, 
+                            ModelingToolkit.getdefault(pars[i].value)) for i in 1:lastindex(pars)]
             consparpairs = vcat(conspairs, parpairs)
-            @named $Name = ODESystem(eqs, ivs[1], vars, vcat(pars, cons), tspan=(0.0, 1.0))
+
+            varspairs = [Pair(vars[i].value, ModelingToolkit.getdefault(vars[i].value)) for i in 1:lastindex(vars)]
+            consin = [cons[i].val for i in 1:lastindex(cons)]
+            parsin = [pars[i].value for i in 1:lastindex(pars)]
+            varsin = [vars[i].value for i in 1:lastindex(vars)]
+            @named $Name = ODESystem(eqs, ivs[1], varsin, vcat(parsin, consin), tspan=(0.0, 1.0))
             prob = ODEProblem($Name,[], (0.0, 1.0), consparpairs)
             mdl.odeproblem = prob
-            mdl._valmap = consparpairs
+            mdl.parameters = ModelValues(names = [x.name for x in pars],
+                                    _values = Dict(x.name => x for x in pars),
+                                    _valmap = Dict(consparpairs),
+                                    _uvalues = mdl._uvalues)
+
+            mdl.states = ModelValues(names = [x.value.val.metadata[ModelingToolkit.VariableSource][2] for x in vars],
+                                _values = Dict(x.name => x for x in vars),
+                                _valmap = Dict(vcat(conspairs,parpairs,varspairs)),
+                                _uvalues = mdl._uvalues)
         else
             # if length($bcs) == 0
                 # error("Need to define boundary conditions for PDEs")
@@ -136,13 +155,19 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
             conspairs = [Pair(cons[i], consvals[i]) for i in 1:lastindex(cons)]
             @named $Name = PDESystem(eqs, [], [], ivs, vars, vcat(pars,conspairs))
         end
-        mdl.parameters = NamedTuple{tuple(Symbol.(pars)...)}(mrgpars)
-        mdl.states = NamedTuple{tuple([var.val.metadata[ModelingToolkit.VariableSource][2] for var in vars]...)}(mrgvars)
-        for p in mdl.parameters
-            p._valmap = mdl._valmap
+
+        # mdl.parameters = NamedTuple{tuple(Symbol.(pars)...)}(mrgpars)
+        # mdl.states = NamedTuple{tuple([var.val.metadata[ModelingToolkit.VariableSource][2] for var in vars]...)}(mrgvars)
+        for pkey in keys(mdl.parameters._values)
+            p = mdl.parameters._values[pkey]
+            p._valmap = mdl.parameters._valmap
+            p._uvalues = mdl._uvalues
         end
-        for s in mdl.states
-            s._valmap = mdl._valmap
+        for skey in keys(mdl.states._values)
+            s = mdl.states._values[skey]
+            s._valmap = mdl.states._valmap
+            s._uvalues = mdl._uvalues
+            # s._puvalues = mdl.parameters._uvalues
         end
         mdl.observed = convert.(Num, obs)
         mdl.observedNames = obsnames
@@ -189,11 +214,12 @@ macro parameters(ps...)
             if !(ModelingToolkit.hasdefault(param))
                 error("Parameter $param must have a default value")
             else
-                ptmp = MRGVal(name = Symbol(param), value = param, _valmap = nothing)#, _val = param)
-                push!(mrgpars, ptmp)
+                # ptmp = MRGVal(name = Symbol(param), value = param, _valmap = nothing)#, _val = param)
+                ptmp = NumValue(name = Symbol(param), value = param, _valmap = Dict{Symbol, Num}(), _uvalues = Dict{Symbol, Real}())
+                push!(pars, ptmp)
             end
         end
-        append!(pars, $out)
+        # append!(pars, nameof.($out))
 
     end
     return q_out
@@ -206,12 +232,13 @@ macro variables(xs...)
             if !(ModelingToolkit.hasdefault(var))
                 error("State $var must have an initial value")
             else
-                vtmp = MRGVal(name = var.val.metadata[ModelingToolkit.VariableSource][2], value = var, _valmap = nothing)#, _val = var)
-                push!(mrgvars, vtmp)
+                # vtmp = MRGVal(name = var.val.metadata[ModelingToolkit.VariableSource][2], value = var, _valmap = nothing)#, _val = var)
+                vtmp = NumValue(name = var.val.metadata[ModelingToolkit.VariableSource][2], value = var, _valmap = Dict{Symbol, Num}(), _uvalues = Dict{Symbol, Real}())
+                push!(vars, vtmp)
             end
             # push!(vars, var.val.metadata[ModelingToolkit.VariableSource][2])
         end
-        append!(vars, $out)
+        # append!(vars, [x.val.metadata[ModelingToolkit.VariableSource][2] for x in $out])
 
     end
     return q_out
@@ -227,11 +254,11 @@ macro constants(cs...)
             if !(ModelingToolkit.hasdefault(con))
                 error("Constant $con must have a value")
             else
-                ctmp = MRGConst(name = Symbol(con), value = con)#, _val = con)
-                push!(mrgcons, ctmp)
+                # ctmp = MRGConst(name = Symbol(con), value = con)#, _val = con)
+                push!(cons, con)
             end
         end
-        append!(cons, $out)
+        # append!(cons, nameof.($out))
     end
     return q_out
 end
@@ -271,9 +298,3 @@ end
 
 
     
-
-
-
- 
-
-

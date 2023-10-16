@@ -1,13 +1,30 @@
+using Symbolics
+using ModelingToolkit
 
+
+# # Change property names to only show parameters
+@inline function Base.propertynames(x::ModelValues)
+    return x.names
+end
+
+# # Change accessor to get parameter value when accessing parameter name
+@inline function Base.getproperty(x::ModelValues, sym::Symbol)
+if sym in getfield(x, :names)
+    return getfield(x,:_values)[sym]
+else
+    return getfield(x, sym)
+end
+end
 
 
 # TYPE CONVERSION RULES ARE AWESOME.
-function Base.convert(::Type{T}, x::MRGVal) where {T<:Number}
-    if T === MRGVal
+@inline function Base.convert(::Type{T}, x::NumValue) where {T<:Number}
+    if T === NumValue
         out = x
     else
-        if !isnothing(x._prob)
-            out = x._prob[x.name]::T
+        if !isnothing(x._valmap)
+            mergeddict = merge(x._valmap, x._uvalues)
+            out = Symbolics.value(substitute(ModelingToolkit.getdefault(x.value), mergeddict))
         else 
             out = x.value
         end
@@ -16,7 +33,7 @@ function Base.convert(::Type{T}, x::MRGVal) where {T<:Number}
 end
 
 
-function Base.convert(::Type{T}, x::MRGConst) where {T<:Number}
+@inline function Base.convert(::Type{T}, x::MRGConst) where {T<:Number}
     if T === MRGConst
         out = x
     else
@@ -26,30 +43,36 @@ function Base.convert(::Type{T}, x::MRGConst) where {T<:Number}
 end
 
 
-function getExpr(param::MRGVal) # Grab the expression for the parameter
-    return param.value
-end
-
-function getUnit(param::MRGVal)
-    println(fooeyfooey)
-    return ModelingToolkit.get_unit(param.value)
+function getDefault(value::NumValue)
+    return Symbolics.value(substitute(ModelingToolkit.getdefault(value.value), value._valmap))
 end
 
 
-function getDescription(param::MRGVal)
-    return ModelingToolkit.getdescription(param.value)
+function getExpr(value::NumValue) # Grab the expression for the parameter
+    return ModelingToolkit.getdefault(value.value)
 end
+
+function getUnit(value::NumValue)
+    return ModelingToolkit.get_unit(value.value)
+end
+
+
+function getDescription(value::NumValue)
+    return ModelingToolkit.getdescription(value.value)
+end
+
+## Add functionality for updating parameters!
+function Base.setproperty!(x::ModelValues, sym::Symbol, v::Real)
+    if sym in getfield(x, :names)
+        x._uvalues[x._values[sym].value] = v
+    else
+        error("Field $sym is immutable")
+    end
+end
+
 
 ## Default for printing parametes is to get the value
-Base.show(io::IO, param::MRGVal) = print(io, param+0.0) # Use type conversion to print as a Float64
-
-## ANY OTHER THINGS CAN GO HERE.
-
-#### ADD STUFF FOR ICs
-
-
-
-
+Base.show(io::IO, param::NumValue) = print(io, param+0.0) # Use type conversion to print as a Float64
 
 
 

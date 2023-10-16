@@ -21,7 +21,7 @@ singh = @model Singh begin
 
      @parameters begin 
         BW = 70, [unit = u"kg", description = "Body Weight"]
-        K_on_ADC = 0.37, [unit = u"(nmol*L^-1)^-1*hr^-1", description = "2nd-order association rate constant between T-DM1 and HER2 antigen"]
+        K_on_ADC = 0.37*BW, [unit = u"(nmol*L^-1)^-1*hr^-1", description = "2nd-order association rate constant between T-DM1 and HER2 antigen"]
         K_off_ADC = 0.097, [unit = u"hr^-1", description = "dissociation rate constant between T-DM1 and HER2 antigen"]
         K_int_ADC = 0.09, [unit=u"hr^-1", description ="internalization rate of the HER2-T-DM1 complex inside the cell"]
         K_deg_ADC = 0.03, [unit=u"hr^-1", description="proteasomal degradation rate of T-DM1 in endosomal/lysosomal space"]
@@ -72,7 +72,7 @@ singh = @model Singh begin
         (C1_Drug_nM(t)=0.0), [unit = u"nmol*L^-1", description = "concentration of DM1 in the plasma central compartment,[nM]"]
         (C2_Drug_nM(t)=0.0), [unit = u"nmol*L^-1", description = "concentration of DM1 in the peripheral compartment,[nM]"]
         (DAR(t)=0.0)#,[description = "average number of DM1 molecules conjugated to Trastuzumab (unitless)"]
-        (TV_mm3(t)=0.0), [unit = u"mm^3", description = "tumor volume [mm^3]"]
+        (TV_mm3(t)=1.0*BW), [unit = u"mm^3", description = "tumor volume [mm^3]"]
      end
           
     #  @parameters a = 2
@@ -136,6 +136,7 @@ singh = @model Singh begin
         (K_kill/(IC_50 + C_Drug_f_cell_nM + C_Drug_b_cell_nM))*(C_Drug_f_cell_nM + C_Drug_b_cell_nM))*TV_mm3
     )
 end;
+
 
 
 using DifferentialEquations

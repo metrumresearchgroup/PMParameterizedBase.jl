@@ -11,6 +11,10 @@ include("accessors.jl")
 model_warnings = true
 
 export @model
+export getUnit
+export getDescription
+export getDefault
+export getExpr
 # using ModelingTookit.@variables
 
 # function solve(model::MRGModel, alg::Union{DEAlgorithm,Nothing}=nothing; kwargs...)
