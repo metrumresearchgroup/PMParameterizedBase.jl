@@ -138,6 +138,6 @@ singh = @model Singh begin
 end;
 
 
+ParameterizedModels.solve!(singh);
+sol = singh._solution;
 
-susing DifferentialEquations
-sol = solve(singh.odeproblem)

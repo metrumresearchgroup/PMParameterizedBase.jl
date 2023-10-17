@@ -20,6 +20,7 @@ Base.@kwdef mutable struct NumValue <: Number
     _valmap::Dict{Num, Num}
     _uvalues::Dict{Num, Real}
     _defaultExpr::Num
+    _constant::Bool = false
 end
 
 Base.@kwdef mutable struct ModelValues <: Number
@@ -27,66 +28,63 @@ Base.@kwdef mutable struct ModelValues <: Number
     _values::Dict{Symbol, NumValue}
     _valmap::Dict{Num, Num}
     _uvalues::Dict{Num, Real}
-    # _defaultExprs::Dict{Num, Num}
-    # _puvalues::Dict{Num, Real}
-    # _suvalues::Dict{Num, Real}
 end
 
 
-# Base.@kwdef mutable struct MRGStates <: Number
+Base.@kwdef struct MRGSolution
+    _solution::ODESolution
+    _states::ModelValues
+    _parameters::ModelValues
+    _constants::ModelValues
+    _observed::ModelValues
+    _names::Vector{Symbol}
+end
+
 
 Base.@kwdef mutable struct MRGModel
-    # parameters#::MRGParamTuple
     states::ModelValues
     independent_variables#::Vector{Num}
     ICs#::Vector{Pair{Num, Float64}}
     tspan::Tuple = (0.0, 1.0)
     parameters::ModelValues
     odeproblem
-    observed
-    observedNames
-    # _puvalues::Dict{Num, Real}
-    # _suvalues::Dict{Num, Real}
+    observed::ModelValues
     _uvalues::Dict{Num, Real}
+    _solution::Union{MRGSolution,Nothing}
+    _constants::ModelValues
     model::ModelingToolkit.AbstractSystem
-
-    # _valmap::Union{Dict{Num, Union{SymbolicUtils.BasicSymbolic{Real}, Number}}, Nothing} = nothing
 end
 
 
 
 
-Base.@kwdef mutable struct MRGConst
-    name::Symbol
-    value::Num
-    # _val::Num
-end
+# Base.@kwdef mutable struct MRGConst
+#     name::Symbol
+#     value::Num
+#     # _val::Num
+# end
+
+
 
 
 macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, AdditionalIndepVars... = nothing)
     outexpr = quote # Create a quote to return our output expression
 
         # Create an empty array to hold all parameters
-        # pars = Vector{Num}(undef, 0)
-        # pars = [ComponentVector{Float64}()]
         pars = NumValue[]
         # parvalues = Num[]
         # mrgpars = MRGVal[]
     
         
         # Create an empty array to hold all variables 
-        # vars = Vector{Num}(undef, 0)
         vars = NumValue[]
-        # varvalues = Num[]
 
         # Create an empty array to hold all constants
-        cons = Num[]
-        # consvalues = Real[]
-        # mrgcons = MRGConst[]
+        cons = NumValue[]
+
 
         # Create an empty array to hold all observed
-        obs = []
-        obsnames = []
+        obs = NumValue[]
 
 
 
@@ -108,11 +106,10 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
             tspan = (0.0, 1.0),
             parameters = ModelValues(names = Symbol[], _values = Dict{Symbol,NumValue}(), _valmap = Dict{Num, Num}(), _uvalues = Dict{Num, Real}()),
             odeproblem = 2.0,
-            observed = 2.0,
-            observedNames = Symbol[],
-            # _puvalues = Dict{Num, Real}(),
-            # _suvalues = Dict{Num, Real}(),
+            observed = ModelValues(names = Symbol[], _values = Dict{Symbol,NumValue}(), _valmap = Dict{Num, Num}(), _uvalues = Dict{Num, Real}()),
             _uvalues = Dict{Num, Real}(),
+            _solution = nothing,
+            _constants = ModelValues(names = Symbol[], _values = Dict{Symbol,NumValue}(), _valmap = Dict{Num, Num}(), _uvalues = Dict{Num, Real}()),
             model = @named $Name = ODESystem([],t)
         )
         # println(mdl.pstruct.names)
@@ -125,16 +122,18 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
 
 
         if length(ivs) == 1
-            conspairs = [Pair(cons[i], 
-                            ModelingToolkit.getdefault(cons[i])) for i in 1:lastindex(cons)]
+            conspairs = [Pair(cons[i].value, 
+                            ModelingToolkit.getdefault(cons[i].value)) for i in 1:lastindex(cons)]
             parpairs = [Pair(pars[i].value, 
                             ModelingToolkit.getdefault(pars[i].value)) for i in 1:lastindex(pars)]
             consparpairs = vcat(conspairs, parpairs)
 
             varspairs = [Pair(vars[i].value, ModelingToolkit.getdefault(vars[i].value)) for i in 1:lastindex(vars)]
-            consin = [cons[i].val for i in 1:lastindex(cons)]
+            obspairs = [Pair(obs[i].value, ModelingToolkit.getdefault(obs[i].value)) for i in 1:lastindex(obs)]
+            consin = [cons[i].value for i in 1:lastindex(cons)]
             parsin = [pars[i].value for i in 1:lastindex(pars)]
             varsin = [vars[i].value for i in 1:lastindex(vars)]
+
             @named $Name = ODESystem(eqs, ivs[1], varsin, vcat(parsin, consin), tspan=(0.0, 1.0))
             prob = ODEProblem($Name,[], (0.0, 1.0), consparpairs)
             mdl.odeproblem = prob
@@ -142,24 +141,39 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
                                     _values = Dict(x.name => x for x in pars),
                                     _valmap = Dict(consparpairs),
                                     _uvalues = mdl._uvalues)
+            mdl._constants = ModelValues(names = [x.name for x in cons],
+                                        _values = Dict(x.name => x for x in cons),
+                                        _valmap = Dict(conspairs),
+                                        _uvalues = mdl._uvalues)
 
             mdl.states = ModelValues(names = [x.value.val.metadata[ModelingToolkit.VariableSource][2] for x in vars],
                                 _values = Dict(x.name => x for x in vars),
                                 _valmap = Dict(vcat(conspairs,parpairs,varspairs)),
                                 _uvalues = mdl._uvalues)
+            mdl.observed = ModelValues(names = [x.name for x in obs],
+                                       _values = Dict(x.name => x for x in obs),
+                                       _valmap = Dict(obspairs),
+                                       _uvalues = mdl._uvalues)
         else
+            nothing
             # if length($bcs) == 0
                 # error("Need to define boundary conditions for PDEs")
             # end
             # if length($domain) == 0
                 # error("Need to define variable domain(s) for PDEs")
             # end
-            conspairs = [Pair(cons[i], consvals[i]) for i in 1:lastindex(cons)]
-            @named $Name = PDESystem(eqs, [], [], ivs, vars, vcat(pars,conspairs))
+            # conspairs = [Pair(cons[i], consvals[i]) for i in 1:lastindex(cons)]
+            # @named $Name = PDESystem(eqs, [], [], ivs, vars, vcat(pars,cons))
         end
 
-        # mdl.parameters = NamedTuple{tuple(Symbol.(pars)...)}(mrgpars)
-        # mdl.states = NamedTuple{tuple([var.val.metadata[ModelingToolkit.VariableSource][2] for var in vars]...)}(mrgvars)
+        
+        for ckey in keys(mdl._constants._values)
+            c = mdl._constants._values[ckey]
+            c._valmap = mdl._constants._valmap
+            c._uvalues = mdl._uvalues
+            c._defaultExpr = mdl._constants._values[ckey].value
+            c._constant = true
+        end
         for pkey in keys(mdl.parameters._values)
             p = mdl.parameters._values[pkey]
             p._valmap = mdl.parameters._valmap
@@ -172,8 +186,13 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
             s._uvalues = mdl._uvalues
             s._defaultExpr = mdl.states._values[skey].value
         end
-        mdl.observed = convert.(Num, obs)
-        mdl.observedNames = obsnames
+        for okey in keys(mdl.observed._values)
+            o = mdl.observed._values[okey]
+            o._valmap = mdl.observed._valmap
+            o._uvalues = mdl._uvalues
+            o._defaultExpr = mdl.observed._values[okey].value
+        end
+
 
 
         mdl.model = $Name # Return the model 
@@ -258,7 +277,8 @@ macro constants(cs...)
                 error("Constant $con must have a value")
             else
                 # ctmp = MRGConst(name = Symbol(con), value = con)#, _val = con)
-                push!(cons, con)
+                ctmp = NumValue(name = Symbol(con), value = con, _valmap = Dict{Symbol, Num}(), _uvalues = Dict{Symbol, Real}(),_defaultExpr = Num(nothing))
+                push!(cons, ctmp)
             end
         end
         # append!(cons, nameof.($out))
@@ -276,7 +296,6 @@ end
 
 function getObsName(ex)
     (@capture(ex, a_ = b_) || @capture(ex, a_ .= b_) || @capture(ex, @__dot__ a_ = b_))
-    # println(Symbol(a))
     return Symbol(a)
 end
 
@@ -289,8 +308,10 @@ macro observed(obsin)
 
     q_out = quote
         for observ in $out
-                push!(obsnames, observ)
-                push!(obs, ModelingToolkit.getdefault(observ))
+                # push!(obsnames, observ)
+
+                obstmp = NumValue(name = Symbol(observ), value = observ, _valmap = Dict{Symbol, Num}(), _uvalues = Dict{Symbol, Real}(),_defaultExpr = Num(nothing))
+                push!(obs, obstmp)
         end
         $obsin
     end

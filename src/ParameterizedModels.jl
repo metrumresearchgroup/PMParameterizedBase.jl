@@ -4,6 +4,7 @@ using MacroTools
 include("helpers.jl")
 include("MRGModel.jl")
 include("accessors.jl")
+include("modelingTools.jl")
 # include("ParseAlgebraic.jl")
 # include("helpers.jl")
 
@@ -22,7 +23,7 @@ export getExpr
     # odefunc = DifferentialEquations.ODEFunction(model; syms = keys(model.states))
 
 # function solve(model::MRGModel, alg::Union{DEAlgorithm,Nothing}=nothing; kwargs...)
-#     odefunc = DifferentialEquations.ODEFunction(model; syms = keys(model.states), indepsym = :t, paramsyms = keys(model.parameters))
+    # odefunc = DifferentialEquations.ODEFunction(model; syms = keys(model.states), indepsym = :t, paramsyms = keys(model.parameters))
 #     problem = ODEProblem(odefunc, model.states, model.tspan, model.parameters)
 #     sol = DifferentialEquations.solve(problem, alg; kwargs...)
 #     return sol
