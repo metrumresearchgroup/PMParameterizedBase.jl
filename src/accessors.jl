@@ -21,6 +21,9 @@ end
 end
 
 @inline function Base.getproperty(x::MRGSolution, sym::Symbol)
+    # out = Real[]
+    sys = getfield(x,:_solution).prob.f.sys
+    ivsym = ModelingToolkit.independent_variable(sys).metadata[ModelingToolkit.VariableSource][2]
     if sym in getfield(x, :_names)
         if sym in keys(x._observed._values)
             obs = x._observed._values[sym]._valmap[x._observed._values[sym].value]
@@ -31,6 +34,8 @@ end
         if length(out) == 1
             out = ones(length(x._solution)) .* out
         end
+    elseif sym ==  ivsym
+        out = x._solution[sym]
     else
         out = getfield(x, sym)
     end
@@ -38,6 +43,8 @@ end
 end
 
 @inline function Base.getindex(x::MRGSolution, sym::Symbol)
+    sys = getfield(x,:_solution).prob.f.sys
+    ivsym = ModelingToolkit.independent_variable(sys).metadata[ModelingToolkit.VariableSource][2]
     if sym in getfield(x, :_names)
         if sym in keys(x._observed._values)
             obs = x._observed._values[sym]._valmap[x._observed._values[sym].value]
@@ -48,6 +55,8 @@ end
         if length(out) == 1
             out = ones(length(x._solution)) .* out
         end
+    elseif sym == ivsym
+        out = out._solution[sym]
     else
         out = getfield(x, sym)
     end

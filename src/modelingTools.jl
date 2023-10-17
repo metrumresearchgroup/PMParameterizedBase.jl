@@ -59,7 +59,8 @@ end
 
 
 function solve(mdl::MRGModel, alg::Union{DEAlgorithm,Nothing} = nothing ; kwargs...)
-    sol = DifferentialEquations.solve(mdl.odeproblem, alg; kwargs...)
+    regenerateODEProblem(mdl)
+    sol = DifferentialEquations.solve(mdl._odeproblem, alg; kwargs...)
     solution = MRGSolution(_solution = sol,
                             _states = mdl.states,
                             _parameters = mdl.parameters,
@@ -71,7 +72,8 @@ end
 
 
 function solve!(mdl::MRGModel, alg::Union{DEAlgorithm,Nothing} = nothing ; kwargs...)
-    sol = DifferentialEquations.solve(mdl.odeproblem, alg; kwargs...)
+    regenerateODEProblem(mdl)
+    sol = DifferentialEquations.solve(mdl._odeproblem, alg; kwargs...)
     solution = MRGSolution(_solution = sol,
                             _states = mdl.states,
                             _parameters = mdl.parameters,

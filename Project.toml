@@ -7,14 +7,12 @@ version = "0.1.0"
 DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa"
 MacroTools = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
 ModelingToolkit = "961ee093-0014-501f-94e3-6117800e7a78"
-Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
 SciMLBase = "0bca4576-84f4-4d90-8ffe-ffa030f20462"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
 [compat]
 MacroTools = "0.5"
-Revise = "3"
 julia = "1"
 
 [extras]

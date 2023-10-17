@@ -1,12 +1,10 @@
 module ParameterizedModels
 using MacroTools
 
-include("helpers.jl")
 include("MRGModel.jl")
 include("accessors.jl")
 include("modelingTools.jl")
-# include("ParseAlgebraic.jl")
-# include("helpers.jl")
+include("helpers.jl")
 
 
 model_warnings = true

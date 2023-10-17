@@ -45,7 +45,7 @@ Base.@kwdef mutable struct MRGModel
     ICs#::Vector{Pair{Num, Float64}}
     tspan::Tuple = (0.0, 1.0)
     parameters::ModelValues
-    odeproblem
+    _odeproblem::ODEProblem
     observed::ModelValues
     _uvalues::Dict{Num, Real}
     _solution::Union{MRGSolution,Nothing}
@@ -101,7 +101,7 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
             independent_variables = Vector{Num}(undef,0),
             tspan = (0.0, 1.0),
             parameters = ModelValues(names = Symbol[], _values = Dict{Symbol,NumValue}(), _valmap = Dict{Num, Num}(), _uvalues = Dict{Num, Real}()),
-            odeproblem = 2.0,
+            _odeproblem = ODEProblem((du,u,p,t)->(nothing),(),(0.0,1.0),()),
             observed = ModelValues(names = Symbol[], _values = Dict{Symbol,NumValue}(), _valmap = Dict{Num, Num}(), _uvalues = Dict{Num, Real}()),
             _uvalues = Dict{Num, Real}(),
             _solution = nothing,
@@ -132,7 +132,7 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
 
             @named $Name = ODESystem(eqs, ivs[1], varsin, vcat(parsin, consin), tspan=(0.0, 1.0))
             prob = ODEProblem($Name,[], (0.0, 1.0), consparpairs)
-            mdl.odeproblem = prob
+            mdl._odeproblem = prob
             mdl.parameters = ModelValues(names = [x.name for x in pars],
                                     _values = Dict(x.name => x for x in pars),
                                     _valmap = Dict(consparpairs),
