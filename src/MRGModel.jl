@@ -1,8 +1,6 @@
 using ParameterizedModels
 using ModelingToolkit
 using Symbolics
-# using DynamicQuantities
-using ComponentArrays
 import Unitful.@u_str
 using Unitful
 using SciMLBase

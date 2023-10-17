@@ -1,7 +1,6 @@
 using PMxSim
 using Test
 using OrdinaryDiffEq: ODEProblem, isinplace
-using ComponentArrays
 @testset "Check model basics" begin
     include("testfunctions.jl")
     @test mdl_basic.parameters == ComponentArray{Float64}(p=2.0)
