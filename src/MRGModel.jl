@@ -72,8 +72,6 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
 
         # Create an empty array to hold all parameters
         pars = NumValue[]
-        # parvalues = Num[]
-        # mrgpars = MRGVal[]
     
         
         # Create an empty array to hold all variables 

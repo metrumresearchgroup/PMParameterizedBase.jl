@@ -60,21 +60,18 @@ end
 
 function solve(mdl::MRGModel, alg::Union{DEAlgorithm,Nothing} = nothing ; kwargs...)
     sol = DifferentialEquations.solve(mdl.odeproblem, alg; kwargs...)
-    # allentities = merge(mdl.cons._values, mdl.observed._values
     solution = MRGSolution(_solution = sol,
                             _states = mdl.states,
                             _parameters = mdl.parameters,
                             _constants = mdl._constants, 
                             _observed = mdl.observed,
                             _names = vcat(collect(keys(mdl.observed._values)),mdl.parameters.names,mdl.states.names))
-    # mdl._solution = solution
     return solution
 end
 
 
 function solve!(mdl::MRGModel, alg::Union{DEAlgorithm,Nothing} = nothing ; kwargs...)
     sol = DifferentialEquations.solve(mdl.odeproblem, alg; kwargs...)
-    # allentities = merge(mdl.cons._values, mdl.observed._values
     solution = MRGSolution(_solution = sol,
                             _states = mdl.states,
                             _parameters = mdl.parameters,
