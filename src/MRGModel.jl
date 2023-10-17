@@ -50,6 +50,7 @@ Base.@kwdef mutable struct MRGModel
     _uvalues::Dict{Num, Real}
     _solution::Union{MRGSolution,Nothing}
     _constants::ModelValues
+    _inputs::ModelValues
     model::ModelingToolkit.AbstractSystem
 end
 
@@ -71,7 +72,9 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
         # Create an empty array to hold all parameters
         pars = NumValue[]
     
-        
+        # Create an empty array to hold all inputs
+        iputs = NumValue[]
+
         # Create an empty array to hold all variables 
         vars = NumValue[]
 
@@ -106,10 +109,13 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
             _uvalues = Dict{Num, Real}(),
             _solution = nothing,
             _constants = ModelValues(names = Symbol[], _values = Dict{Symbol,NumValue}(), _valmap = Dict{Num, Num}(), _uvalues = Dict{Num, Real}()),
+            _inputs = ModelValues(names = Symbol[], _values = Dict{Symbol,NumValue}(), _valmap = Dict{Num, Num}(), _uvalues = Dict{Num, Real}()),
             model = @named $Name = ODESystem([],t)
         )
-        # println(mdl.pstruct.names)
+        # Create an empty vector to hold equations
         eqs = Vector{Equation}(undef, 0)
+        # Create another empty vector to hold the original equations (i.e no inputs)
+        eqs_orig = Vector{Equation}(undef, 0)
 
         # Grab everything within the @model block and run it to populate mdl block, expand other macros etc. 
         $MdlEx
@@ -118,19 +124,22 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
 
 
         if length(ivs) == 1
-            conspairs = [Pair(cons[i].value, 
-                            ModelingToolkit.getdefault(cons[i].value)) for i in 1:lastindex(cons)]
-            parpairs = [Pair(pars[i].value, 
-                            ModelingToolkit.getdefault(pars[i].value)) for i in 1:lastindex(pars)]
-            consparpairs = vcat(conspairs, parpairs)
+            conspairs = length(cons)>0 ? [Pair(cons[i].value, 
+                            ModelingToolkit.getdefault(cons[i].value)) for i in 1:lastindex(cons)] : Pair{Symbolics.Num}[]
+            parpairs = length(pars)> 0 ? [Pair(pars[i].value, 
+                            ModelingToolkit.getdefault(pars[i].value)) for i in 1:lastindex(pars)] : Pair{Symbolics.Num}[]
+            iputpairs = length(iputs)>0 ? [Pair(iputs[i].value, 
+                            ModelingToolkit.getdefault(iputs[i].value)) for i in 1:lastindex(iputs)] : Pair{Symbolics.Num}[]
+            consparpairs = vcat(conspairs, parpairs, iputpairs)
 
-            varspairs = [Pair(vars[i].value, ModelingToolkit.getdefault(vars[i].value)) for i in 1:lastindex(vars)]
-            obspairs = [Pair(obs[i].value, ModelingToolkit.getdefault(obs[i].value)) for i in 1:lastindex(obs)]
+            varspairs = length(vars)>0 ? [Pair(vars[i].value, ModelingToolkit.getdefault(vars[i].value)) for i in 1:lastindex(vars)] : Pair{Symbolics.Num}[]
+            obspairs = length(obs) > 0 ? [Pair(obs[i].value, ModelingToolkit.getdefault(obs[i].value)) for i in 1:lastindex(obs)] : Pair{Symbolics.Num}[]
             consin = [cons[i].value for i in 1:lastindex(cons)]
             parsin = [pars[i].value for i in 1:lastindex(pars)]
             varsin = [vars[i].value for i in 1:lastindex(vars)]
+            iputsin = [iputs[i].value for i in 1:lastindex(iputs)]
 
-            @named $Name = ODESystem(eqs, ivs[1], varsin, vcat(parsin, consin), tspan=(0.0, 1.0))
+            @named $Name = ODESystem(eqs, ivs[1], varsin, vcat(parsin, consin, iputsin), tspan=(0.0, 1.0))
             prob = ODEProblem($Name,[], (0.0, 1.0), consparpairs)
             mdl._odeproblem = prob
             mdl.parameters = ModelValues(names = [x.name for x in pars],
@@ -150,6 +159,11 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
                                        _values = Dict(x.name => x for x in obs),
                                        _valmap = Dict(obspairs),
                                        _uvalues = mdl._uvalues)
+            mdl._inputs = ModelValues(names = [x.name for x in iputs],
+                                      _values = Dict(x.name => x for x in iputs),
+                                      _valmap = Dict(iputpairs),
+                                      _uvalues = mdl._uvalues)
+
         else
             nothing
             # if length($bcs) == 0
@@ -188,8 +202,12 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
             o._uvalues = mdl._uvalues
             o._defaultExpr = mdl.observed._values[okey].value
         end
-
-
+        for ikey in keys(mdl._inputs._values)
+            i = mdl._inputs._values[ikey]
+            i._valmap = mdl._inputs._valmap
+            i._uvalues = mdl._uvalues
+            i._defaultExpr = mdl._inputs._values[ikey].value
+        end
 
         mdl.model = $Name # Return the model 
         mdl
@@ -232,6 +250,7 @@ macro parameters(ps...)
             if !(ModelingToolkit.hasdefault(param))
                 error("Parameter $param must have a default value")
             else
+        
                 # ptmp = MRGVal(name = Symbol(param), value = param, _valmap = nothing)#, _val = param)
                 ptmp = NumValue(name = Symbol(param), value = param, _valmap = Dict{Symbol, Num}(), _uvalues = Dict{Symbol, Real}(),_defaultExpr = Num(nothing))
                 push!(pars, ptmp)
@@ -242,6 +261,27 @@ macro parameters(ps...)
     end
     return q_out
 end
+
+macro inputs(ins...)
+    out = esc(Symbolics._parse_vars(:parameters,
+    Real,
+    ins,
+    ModelingToolkit.toparam))
+
+    q_out = quote 
+        for input in $out
+            if (ModelingToolkit.hasdefault(input))
+                error("Input $input should not hve a default value")
+            else
+                input = ModelingToolkit.setdefault(input, 0.0)
+                itmp = NumValue(name = Symbol(input), value = input, _valmap = Dict{Symbol, Num}(), _uvalues = Dict{Symbol, Real}(),_defaultExpr = Num(nothing))
+                push!(iputs, itmp)
+            end
+        end
+    end
+    return q_out
+end
+
 
 macro variables(xs...)
     out = esc(ModelingToolkit._parse_vars(:variables, Real, xs))

@@ -84,7 +84,6 @@ singh = @model Singh begin
 
 
 
-
     @eq Dt(X1_ADC_nmol) ~ (
         -(CL_ADC/V1_ADC)*X1_ADC_nmol - (CLD_ADC/V1_ADC)*X1_ADC_nmol + (CLD_ADC/V2_ADC)*X2_ADC_nmol - K_dec_ADC_plasma*X1_ADC_nmol - 
         ((2*P_ADC*R_Cap)/(R_Krogh^2))*((X1_ADC_nmol/(V1_ADC*BW)) - C_ADC_f_ex_nM)*(TV_mm3*mm3_to_L) - 
