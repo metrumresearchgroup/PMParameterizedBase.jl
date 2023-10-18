@@ -137,6 +137,6 @@ singh = @model Singh begin
 end;
 
 
-ParameterizedModels.solve!(singh);
-sol = singh._solution;
+sol = ParameterizedModels.solve(singh);
+# sol = singh._solution;
 
