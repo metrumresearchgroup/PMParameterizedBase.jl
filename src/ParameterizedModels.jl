@@ -2,12 +2,12 @@ module ParameterizedModels
 using MacroTools
 
 include("MRGModel.jl")
-include("propertynames.jl")
+include("modelingTools.jl")
 include("getproperties.jl")
 include("getindexes.jl")
-
-# include("accessors.jl")
-include("modelingTools.jl")
+include("setproperties.jl")
+include("accessors.jl")
+include("propertynames.jl")
 include("helpers.jl")
 
 

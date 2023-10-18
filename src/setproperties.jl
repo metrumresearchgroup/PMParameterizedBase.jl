@@ -23,6 +23,10 @@ end
         end
         x._uvalues[x._values[sym].value] = v
     else
-        error("Field $sym is immutable")
+        if hasfield(typeof(x),sym)
+            error("Field $sym is immutable")
+        else
+            setfield!(x, sym, v)
+        end
     end
 end
