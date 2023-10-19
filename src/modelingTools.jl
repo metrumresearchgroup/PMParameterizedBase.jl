@@ -24,17 +24,8 @@ end
 
 
 function solve(mdl::MRGModel, alg::Union{DEAlgorithm,Nothing} = nothing ; kwargs...)
-    cb = nothing
-    if :evs in keys(kwargs)
-        
-        # evs = pop!(kwargs,:evs) 
-        evs = kwargs[:evs]
-        # delete!(kwargs, :evs)
-        # kwargs = kwargs[keys(kwargs) != :evs]
-        # if isa(evs, Vector{Ball})
-    end
     regenerateODEProblem!(mdl)
-    sol = DifferentialEquations.solve(mdl._odeproblem, alg; callback = cb, kwargs...)
+    sol = DifferentialEquations.solve(mdl._odeproblem, alg; kwargs...)
     solution = MRGSolution(_solution = sol,
                             _states = mdl.states,
                             _parameters = mdl.parameters,
