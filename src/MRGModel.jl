@@ -69,8 +69,8 @@ end
 
 
 macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, AdditionalIndepVars... = nothing)
+    Namegen = gensym(Name)
     outexpr = quote # Create a quote to return our output expression
-
         # Create an empty array to hold all parameters
         pars = NumValue[]
     
@@ -113,7 +113,7 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
             _solution = nothing,
             _constants = ModelValues(names = Symbol[], _values = Dict{Symbol,NumValue}(), _valmap = Dict{Num, Num}(), _uvalues = Dict{Num, Real}()),
             _inputs = ModelValues(names = Symbol[], _values = Dict{Symbol,NumValue}(), _valmap = Dict{Num, Num}(), _uvalues = Dict{Num, Real}()),
-            model = @named $Name = ODESystem([],t)
+            model = @named $Namegen = ODESystem([],t)
         )
         # Create an empty vector to hold equations
         eqs = Vector{Equation}(undef, 0)
@@ -142,10 +142,10 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
             varsin = [vars[i].value for i in 1:lastindex(vars)]
             iputsin = [iputs[i].value for i in 1:lastindex(iputs)]
 
-            @named $Name = ODESystem(eqs, ivs[1], varsin, vcat(parsin, consin, iputsin), tspan=(0.0, 1.0))
-            prob = ODEProblem($Name,[], (0.0, 1.0), consparpairs)
+            @named $Namegen = ODESystem(eqs, ivs[1], varsin, vcat(parsin, consin, iputsin), tspan=getmetadata(ivs[1],IVDomain))
+            prob = ODEProblem($Namegen,[], getmetadata(ivs[1],IVDomain), consparpairs)
             mdl._odeproblem = prob
-            mdl._sys = $Name
+            mdl._sys = $Namegen
             mdl.parameters = ModelValues(names = [x.name for x in pars],
                                     _values = Dict(x.name => x for x in pars),
                                     _valmap = Dict(consparpairs),
@@ -167,6 +167,8 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
                                       _values = Dict(x.name => x for x in iputs),
                                       _valmap = Dict(iputpairs),
                                       _uvalues = mdl._uvalues)
+            # println(getmetadata(ivs[1],IVDomain))
+            mdl.tspan = getmetadata(ivs[1],IVDomain)
 
         else
             nothing
@@ -213,7 +215,7 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
             i._defaultExpr = mdl._inputs._values[ikey].value
         end
 
-        mdl.model = $Name # Return the model 
+        mdl.model = $Namegen # Return the model 
         mdl
     end
 

@@ -70,3 +70,12 @@ end
     end
 end
 
+@inline function Base.setproperty!(x::MRGModel, sym::Symbol, v::Tuple)
+    if sym == :tspan
+        x._odeproblem = remake(x._odeproblem, tspan = v)
+        setfield!(x, sym, v)
+    else
+        setfield!(x, sym, v)
+    end
+end
+

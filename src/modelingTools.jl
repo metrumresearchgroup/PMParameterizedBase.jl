@@ -1,4 +1,5 @@
 using DifferentialEquations
+using SciMLSensitivity
 
 
 Base.@kwdef struct partialSol
@@ -50,3 +51,13 @@ function solve!(mdl::MRGModel, alg::Union{DEAlgorithm,Nothing} = nothing ; kwarg
 end
 
 
+
+function ODEForwardSensitivityProblem(mdl::MRGModel, u0::ModelValues, tspan, p::ModelValues, sensealg::SciMLSensitivity.AbstractForwardSensitivityAlgorithm = ForwardSensitivity();
+    kwargs... )
+    regenerateODEProblem!(mdl)
+    f = mdl._odeproblem.f
+    u0 = mdl._odeproblem.u0
+    p = mdl._odeproblem.p
+    sens_prob = SciMLSensitivity.ODEForwardSensitivityProblem(f, u0, tspan, p, sensealg; kwargs...)
+    return sens_prob
+end

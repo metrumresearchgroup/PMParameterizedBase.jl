@@ -13,3 +13,7 @@ end
     names = vcat(x.states.names, x.parameters.names, x.observed.names)
     return names
 end
+
+@inline function Base.propertynames(x::MRGModel)
+    return [:parameters, :states, :observed, :model, :tspan]
+end

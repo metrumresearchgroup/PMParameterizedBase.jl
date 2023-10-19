@@ -38,6 +38,28 @@ function getDescription(value::NumValue)
     return ModelingToolkit.getdescription(value.value)
 end
 
+function names(mvals::ModelValues; symbolic=true)
+    if symbolic
+        return mvals.names
+    else
+        # return collect(keys(mvals._values[]))
+        return [mvals._values[x].value for x in mvals.names]
+    end
+end
+
+function values(mvals::ModelValues; symbolic=false)
+    if symbolic
+        mergeddict = merge(mvals._valmap, mvals._uvalues)
+        # out = [Symbolics.value(substitute(mvals._values[x].value, mergeddict)) for x in keys(mvals._values)]
+        out = [mvals._values[x].value for x in mvals.names]
+        return out
+    else
+        mergeddict = merge(mvals._valmap, mvals._uvalues)
+        out = [Symbolics.value(substitute(mvals._values[x].value, mergeddict)) for x in mvals.names]
+        return out
+    end
+end
+
 
 ## Default for printing parametes is to get the value
 Base.show(io::IO, param::NumValue) = print(io, param+0.0) # Use type conversion to print as a Float64
