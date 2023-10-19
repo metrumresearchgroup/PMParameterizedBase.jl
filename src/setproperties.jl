@@ -32,20 +32,6 @@ end
 end
 
 
-@inline function Base.setproperty!(x::MRGModel, sym::Symbol, v::ComponentArrays)
-    if sym == :parameters
-        for vk in keys(v)
-            setfield(x.parameters, sym, v[vk])
-        end
-            # setfield(x,setfield(mdl.parameters
-    elseif sym == :states
-        for vk in keys(v)
-            setfield(x.states, sym, v[vk])
-        end
-    else
-        setfield!(x, sym, v)
-    end
-end
 
 @inline function Base.setproperty!(x::MRGModel, sym::Symbol, v::AbstractArray)
     if !all(isa.(keys(v), Symbol))
@@ -53,12 +39,15 @@ end
     end
     if sym == :parameters
         for vk in keys(v)
-            setfield(x.parameters, sym, v[vk])
+            # setfield!(x.parameters, vk, v[vk])
+            x.parameters._uvalues[x.parameters._values[vk].value] = v[vk]
+
         end
             # setfield(x,setfield(mdl.parameters
     elseif sym == :states
         for vk in keys(v)
-            setfield(x.states, sym, v[vk])
+            x.states._uvalues[x.states._values[vk].value] = v[vk]
+            # setfield!(x.states, vk, v[vk])
         end
     else
         setfield!(x, sym, v)
@@ -69,12 +58,12 @@ end
 @inline function Base.setproperty!(x::MRGModel, sym::Symbol, v::NamedTuple)
     if sym == :parameters
         for vk in keys(v)
-            setfield(x.parameters, sym, v[vk])
+            x.parameters._uvalues[x.parameters._values[vk].value] = v[vk]
         end
             # setfield(x,setfield(mdl.parameters
     elseif sym == :states
         for vk in keys(v)
-            setfield(x.states, sym, v[vk])
+            x.states._uvalues[x.states._values[vk].value] = v[vk]
         end
     else
         setfield!(x, sym, v)
