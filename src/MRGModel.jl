@@ -9,9 +9,10 @@ using SciMLBase
 # Add location metadata type to variables
 ## This will let us specify a file to look in for variable/parameter values
 struct VariableLoc end
+struct IVDomain end
 Symbolics.option_to_metadata_type(::Val{:location}) = VariableLoc
-
-
+Symbolics.option_to_metadata_type(::Val{:domain}) = IVDomain
+Symbolics.option_to_metadata_type(::Val{:tspan}) = IVDomain
 Base.@kwdef mutable struct NumValue <: Number
     name::Symbol
     value::Num
@@ -232,13 +233,20 @@ julia> @IVs x y z
 ```
 """
 macro IVs(ivs_in...)
-    ptmp = Symbolics._parse_vars(:parameters,
+    ivs = Symbolics._parse_vars(:parameters,
         Real,
         ivs_in,
         ModelingToolkit.toparam) |> esc
     quote
-        append!(mdl.independent_variables, $ptmp)
-        append!(ivs, $ptmp)
+        for ptmp in $ivs
+            if !hasmetadata(ptmp, IVDomain)
+                error("Timespan or domain must be provided for independent variable $ptmp")
+            elseif typeof(getmetadata(ptmp, IVDomain)) != Tuple{Float64, Float64}
+                error("Timespan or domain for independent variable $ptmp must be of type Tuple{Float64, Float64}")
+            end
+            push!(ivs, ptmp)
+        end
+        append!(mdl.independent_variables, $ivs)
     end
 end
 
