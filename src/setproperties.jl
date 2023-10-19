@@ -30,3 +30,54 @@ end
         end
     end
 end
+
+
+@inline function Base.setproperty!(x::MRGModel, sym::Symbol, v::ComponentArrays)
+    if sym == :parameters
+        for vk in keys(v)
+            setfield(x.parameters, sym, v[vk])
+        end
+            # setfield(x,setfield(mdl.parameters
+    elseif sym == :states
+        for vk in keys(v)
+            setfield(x.states, sym, v[vk])
+        end
+    else
+        setfield!(x, sym, v)
+    end
+end
+
+@inline function Base.setproperty!(x::MRGModel, sym::Symbol, v::AbstractArray)
+    if !all(isa.(keys(v), Symbol))
+        error("Parameter input must have parameter name keys, please see ComponentArrays or LabelledArrays")
+    end
+    if sym == :parameters
+        for vk in keys(v)
+            setfield(x.parameters, sym, v[vk])
+        end
+            # setfield(x,setfield(mdl.parameters
+    elseif sym == :states
+        for vk in keys(v)
+            setfield(x.states, sym, v[vk])
+        end
+    else
+        setfield!(x, sym, v)
+    end
+end
+
+
+@inline function Base.setproperty!(x::MRGModel, sym::Symbol, v::NamedTuple)
+    if sym == :parameters
+        for vk in keys(v)
+            setfield(x.parameters, sym, v[vk])
+        end
+            # setfield(x,setfield(mdl.parameters
+    elseif sym == :states
+        for vk in keys(v)
+            setfield(x.states, sym, v[vk])
+        end
+    else
+        setfield!(x, sym, v)
+    end
+end
+

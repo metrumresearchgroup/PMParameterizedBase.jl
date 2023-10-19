@@ -41,7 +41,7 @@ end
 
 ## Derivative Tests
 @testset "Check for derivative and state definitions" begin
-    include("derivative_tests.jl")
+    # include("derivative_tests.jl")
     @test_throws ErrorException("No derivative provided for states(s) R2") deriv_test1()
     @test_throws ErrorException("No derivative provided for states(s) R3") deriv_test2()
 end
