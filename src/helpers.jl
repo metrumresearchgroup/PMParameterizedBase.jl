@@ -1,14 +1,17 @@
 using SciMLBase
-function regenerateODEProblem!(mdl::MRGModel)
-    for entry in keys(mdl._uvalues)
-        sym = entry.val.metadata[ModelingToolkit.VariableSource][2]
-        if sym in mdl.parameters.names
-            mdl._odeproblem = remake(mdl._odeproblem, p = [entry => mdl._uvalues[entry]])
-        elseif sym in mdl.states.names
-
-            mdl._odeproblem = remake(mdl._odeproblem, u0 = [entry => mdl._uvalues[entry]])
-        else
-            error("Uh oh, something is borked")
-        end
+# function updateEntities!(mdl::MRGModel)
+function getNumericValue(x, mdl)
+    mergeddict = merge(x._valmap, x._uvalues)
+    out = Symbolics.value(substitute(x._valmap[x.value], mergeddict))
+    if x.value in keys(x._uvalues)
+        out = x._uvalues[x.value]
     end
+    return out
+end
+
+
+function regenerateODEProblem!(mdl::MRGModel)
+    p = [getproperty(mdl.parameters, x).value => getNumericValue(getproperty(mdl.parameters,x), mdl) for x in mdl.parameters.names]
+    u0 = [getproperty(mdl.states, x).value => getNumericValue(getproperty(mdl.states,x), mdl) for x in mdl.states.names]
+    mdl._odeproblem = remake(mdl._odeproblem, p = p, u0 = u0)
 end

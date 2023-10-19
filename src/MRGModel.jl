@@ -17,7 +17,7 @@ Base.@kwdef mutable struct NumValue <: Number
     name::Symbol
     value::Num
     _valmap::Dict{Num, Num}
-    _uvalues::Dict{Num, Real}
+    _uvalues::Dict{Num, Number}
     _defaultExpr::Num
     _constant::Bool = false
 end
@@ -26,7 +26,7 @@ Base.@kwdef mutable struct ModelValues <: Number
     names::Vector{Symbol}
     _values::Dict{Symbol, NumValue}
     _valmap::Dict{Num, Num}
-    _uvalues::Dict{Num, Real}
+    _uvalues::Dict{Num, Number}
 end
 
 
@@ -49,7 +49,7 @@ Base.@kwdef mutable struct MRGModel
     _sys::Union{ODESystem, PDESystem, Nothing}
     _odeproblem::ODEProblem
     observed::ModelValues
-    _uvalues::Dict{Num, Real}
+    _uvalues::Dict{Num, Number}
     _solution::Union{MRGSolution,Nothing}
     _constants::ModelValues
     _inputs::ModelValues
@@ -236,8 +236,8 @@ macro IVs(ivs_in...)
     ivs = Symbolics._parse_vars(:parameters,
         Real,
         ivs_in,
-        ModelingToolkit.toparam) |> esc
-    quote
+        ModelingToolkit.toparam)
+    q_out = quote
         for ptmp in $ivs
             if !hasmetadata(ptmp, IVDomain)
                 error("Timespan or domain must be provided for independent variable $ptmp")
@@ -248,6 +248,7 @@ macro IVs(ivs_in...)
         end
         append!(mdl.independent_variables, $ivs)
     end
+    return q_out
 end
 
 macro parameters(ps...)
