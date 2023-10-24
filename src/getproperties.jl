@@ -12,7 +12,7 @@ using ModelingToolkit
     end
 end
 
-@inline function Base.getproperty(x::MRGSolution, sym::Symbol)
+@inline function Base.getproperty(x::PMSolution, sym::Symbol)
     # out = Real[]
     sys = getfield(x,:_solution).prob.f.sys
     ivsym = ModelingToolkit.independent_variable(sys).metadata[ModelingToolkit.VariableSource][2]

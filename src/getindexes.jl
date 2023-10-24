@@ -1,7 +1,7 @@
 using Symbolics
 using ModelingToolkit
 
-@inline function Base.getindex(x::MRGSolution, sym::Symbol)
+@inline function Base.getindex(x::PMSolution, sym::Symbol)
     sys = getfield(x,:_solution).prob.f.sys
     ivsym = ModelingToolkit.independent_variable(sys).metadata[ModelingToolkit.VariableSource][2]
     if sym in getfield(x, :_names)

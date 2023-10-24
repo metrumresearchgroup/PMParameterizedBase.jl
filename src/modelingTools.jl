@@ -11,7 +11,7 @@ end
 
 
 
-function (sol::MRGSolution)(in)
+function (sol::PMSolution)(in)
     if length(in) == 1
         in = [in]
     end
@@ -27,7 +27,7 @@ end
 function solve(mdl::PMModel, alg::Union{DEAlgorithm,Nothing} = nothing ; kwargs...)
     regenerateODEProblem!(mdl)
     sol = DifferentialEquations.solve(mdl._odeproblem, alg; kwargs...)
-    solution = MRGSolution(_solution = sol,
+    solution = PMSolution(_solution = sol,
                             _states = mdl.states,
                             _parameters = mdl.parameters,
                             _constants = mdl._constants, 
@@ -40,7 +40,7 @@ end
 function solve!(mdl::PMModel, alg::Union{DEAlgorithm,Nothing} = nothing ; kwargs...)
     regenerateODEProblem!(mdl)
     sol = DifferentialEquations.solve(mdl._odeproblem, alg; kwargs...)
-    solution = MRGSolution(_solution = sol,
+    solution = PMSolution(_solution = sol,
                             _states = mdl.states,
                             _parameters = mdl.parameters,
                             _constants = mdl._constants, 

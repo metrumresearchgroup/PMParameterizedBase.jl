@@ -30,7 +30,7 @@ Base.@kwdef mutable struct ModelValues <: Number
 end
 
 
-Base.@kwdef struct MRGSolution
+Base.@kwdef struct PMSolution
     _solution::ODESolution
     _states::ModelValues
     _parameters::ModelValues
@@ -50,20 +50,11 @@ Base.@kwdef mutable struct PMModel
     _odeproblem::ODEProblem
     observed::ModelValues
     _uvalues::Dict{Num, Number}
-    _solution::Union{MRGSolution,Nothing}
+    _solution::Union{PMSolution,Nothing}
     _constants::ModelValues
     _inputs::ModelValues
     model::ModelingToolkit.AbstractSystem
 end
-
-
-
-
-# Base.@kwdef mutable struct MRGConst
-#     name::Symbol
-#     value::Num
-#     # _val::Num
-# end
 
 
 
@@ -265,7 +256,6 @@ macro parameters(ps...)
                 error("Parameter $param must have a default value")
             else
         
-                # ptmp = MRGVal(name = Symbol(param), value = param, _valmap = nothing)#, _val = param)
                 ptmp = NumValue(name = Symbol(param), value = param, _valmap = Dict{Symbol, Num}(), _uvalues = Dict{Symbol, Real}(),_defaultExpr = Num(nothing))
                 push!(pars, ptmp)
             end
@@ -304,13 +294,10 @@ macro variables(xs...)
             if !(ModelingToolkit.hasdefault(var))
                 error("State $var must have an initial value")
             else
-                # vtmp = MRGVal(name = var.val.metadata[ModelingToolkit.VariableSource][2], value = var, _valmap = nothing)#, _val = var)
                 vtmp = NumValue(name = var.val.metadata[ModelingToolkit.VariableSource][2], value = var, _valmap = Dict{Symbol, Num}(), _uvalues = Dict{Symbol, Real}(),_defaultExpr = Num(nothing))
                 push!(vars, vtmp)
             end
-            # push!(vars, var.val.metadata[ModelingToolkit.VariableSource][2])
         end
-        # append!(vars, [x.val.metadata[ModelingToolkit.VariableSource][2] for x in $out])
 
     end
     return q_out
@@ -326,12 +313,10 @@ macro constants(cs...)
             if !(ModelingToolkit.hasdefault(con))
                 error("Constant $con must have a value")
             else
-                # ctmp = MRGConst(name = Symbol(con), value = con)#, _val = con)
                 ctmp = NumValue(name = Symbol(con), value = con, _valmap = Dict{Symbol, Num}(), _uvalues = Dict{Symbol, Real}(),_defaultExpr = Num(nothing))
                 push!(cons, ctmp)
             end
         end
-        # append!(cons, nameof.($out))
     end
     return q_out
 end

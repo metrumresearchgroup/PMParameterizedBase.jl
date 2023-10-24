@@ -5,7 +5,7 @@ using ModelingToolkit
     return x.names
 end
 
-@inline function Base.propertynames(x::MRGSolution)
+@inline function Base.propertynames(x::PMSolution)
     return x._names
 end
 
