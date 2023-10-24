@@ -1,4 +1,4 @@
-using ParameterizedModels
+using PMParameterized
 using Plots
 using SciMLSensitivity
 using GlobalSensitivity
@@ -6,7 +6,7 @@ using DifferentialEquations
 
 # define model
 
-mdl = ParameterizedModels.@model mdl begin
+mdl = PMParameterized.@model mdl begin
     @IVs t [description = "time", tspan = (0.0, 21.0 * 24.0)]
     D = Differential(t)
     @parameters begin 
@@ -27,13 +27,13 @@ end;
 
 mdl.tspan = (0.0, 21.0*24.0);
 
-sol = ParameterizedModels.solve(mdl, saveat = 1.0);
+sol = PMParameterized.solve(mdl, saveat = 1.0);
 
 plot(sol.t, sol.X1_ADC_nmol, label="X1_ADC_nmol")
 plot!(sol.t, sol.X2_ADC_nmol, label = "X2_ADC_nmol")
 
 tspan = mdl.tspan
-prob_sens = ParameterizedModels.ODEForwardSensitivityProblem(mdl, mdl.states, mdl.tspan, mdl.parameters);
+prob_sens = PMParameterized.ODEForwardSensitivityProblem(mdl, mdl.states, mdl.tspan, mdl.parameters);
 sol_sens = solve(prob_sens, Tsit5())
 
 
@@ -41,7 +41,7 @@ tmp_mod = deepcopy(mdl);
 f_globsens = function(p, nms)
     pin = NamedTuple{nms}(p)
     tmp_mod.parameters = pin
-    tmp_sol = ParameterizedModels.solve(tmp_mod, saveat = sol.t)
+    tmp_sol = PMParameterized.solve(tmp_mod, saveat = sol.t)
     [maximum(tmp_sol.X1_ADC_nmol)]
 end
 

@@ -1,5 +1,5 @@
 using Revise
-using ParameterizedModels
+using PMParameterized
 using ModelingToolkit
 using Unitful
 

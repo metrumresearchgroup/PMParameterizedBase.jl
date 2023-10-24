@@ -1,4 +1,4 @@
-using ParameterizedModels
+using PMParameterized
 using ModelingToolkit
 using Symbolics
 import Unitful.@u_str
@@ -40,7 +40,7 @@ Base.@kwdef struct MRGSolution
 end
 
 
-Base.@kwdef mutable struct MRGModel
+Base.@kwdef mutable struct PMModel
     states::ModelValues
     independent_variables#::Vector{Num}
     ICs#::Vector{Pair{Num, Float64}}
@@ -95,12 +95,12 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
         bcs = Num[]
         # Create an empty array to hold domains for PDESystems
         domain = Num[]
-        # Create an empty MRGModel object to hold our parameters, states, IVs, etc.
+        # Create an empty PMModel object to hold our parameters, states, IVs, etc.
         
         
 
         ModelingToolkit.@parameters t 
-        mdl = MRGModel(
+        mdl = PMModel(
             states = ModelValues(names = Symbol[], _values = Dict{Symbol,NumValue}(), _valmap = Dict{Num, Num}(), _uvalues = Dict{Num, Real}()),
             ICs = [],
             independent_variables = Vector{Num}(undef,0),

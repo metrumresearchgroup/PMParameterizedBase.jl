@@ -24,7 +24,7 @@ end
 
 
 
-function solve(mdl::MRGModel, alg::Union{DEAlgorithm,Nothing} = nothing ; kwargs...)
+function solve(mdl::PMModel, alg::Union{DEAlgorithm,Nothing} = nothing ; kwargs...)
     regenerateODEProblem!(mdl)
     sol = DifferentialEquations.solve(mdl._odeproblem, alg; kwargs...)
     solution = MRGSolution(_solution = sol,
@@ -37,7 +37,7 @@ function solve(mdl::MRGModel, alg::Union{DEAlgorithm,Nothing} = nothing ; kwargs
 end
 
 
-function solve!(mdl::MRGModel, alg::Union{DEAlgorithm,Nothing} = nothing ; kwargs...)
+function solve!(mdl::PMModel, alg::Union{DEAlgorithm,Nothing} = nothing ; kwargs...)
     regenerateODEProblem!(mdl)
     sol = DifferentialEquations.solve(mdl._odeproblem, alg; kwargs...)
     solution = MRGSolution(_solution = sol,
@@ -52,7 +52,7 @@ end
 
 
 
-function ODEForwardSensitivityProblem(mdl::MRGModel, u0::ModelValues, tspan, p::ModelValues, sensealg::SciMLSensitivity.AbstractForwardSensitivityAlgorithm = ForwardSensitivity();
+function ODEForwardSensitivityProblem(mdl::PMModel, u0::ModelValues, tspan, p::ModelValues, sensealg::SciMLSensitivity.AbstractForwardSensitivityAlgorithm = ForwardSensitivity();
     kwargs... )
     regenerateODEProblem!(mdl)
     f = mdl._odeproblem.f

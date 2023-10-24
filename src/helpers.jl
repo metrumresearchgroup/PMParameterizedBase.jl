@@ -1,6 +1,6 @@
 using SciMLBase
-# function updateEntities!(mdl::MRGModel)
-function getNumericValue(x, mdl)
+# function updateEntities!(mdl::PMMo)
+function getNumericValue(x, mdl::PMModel)
     mergeddict = merge(x._valmap, x._uvalues)
     out = Symbolics.value(substitute(x._valmap[x.value], mergeddict))
     if x.value in keys(x._uvalues)
@@ -10,7 +10,7 @@ function getNumericValue(x, mdl)
 end
 
 
-function regenerateODEProblem!(mdl::MRGModel)
+function regenerateODEProblem!(mdl::PMModel)
     p = [getproperty(mdl.parameters, x).value => getNumericValue(getproperty(mdl.parameters,x), mdl) for x in mdl.parameters.names]
     u0 = [getproperty(mdl.states, x).value => getNumericValue(getproperty(mdl.states,x), mdl) for x in mdl.states.names]
     mdl._odeproblem = remake(mdl._odeproblem, p = p, u0 = u0)

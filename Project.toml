@@ -1,4 +1,4 @@
-name = "ParameterizedModels"
+name = "PMParameterized"
 uuid = "99b5832f-53bf-45ba-a9c8-837ddefabddf"
 authors = ["Tim Knab"]
 version = "0.1.0"

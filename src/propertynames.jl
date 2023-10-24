@@ -14,6 +14,6 @@ end
     return names
 end
 
-@inline function Base.propertynames(x::MRGModel)
+@inline function Base.propertynames(x::PMModel)
     return [:parameters, :states, :observed, :model, :tspan]
 end

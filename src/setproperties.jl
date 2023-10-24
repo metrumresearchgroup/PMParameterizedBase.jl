@@ -33,7 +33,7 @@ end
 
 
 
-@inline function Base.setproperty!(x::MRGModel, sym::Symbol, v::AbstractArray)
+@inline function Base.setproperty!(x::PMModel, sym::Symbol, v::AbstractArray)
     if !all(isa.(keys(v), Symbol))
         error("Parameter input must have parameter name keys, please see ComponentArrays or LabelledArrays")
     end
@@ -55,7 +55,7 @@ end
 end
 
 
-@inline function Base.setproperty!(x::MRGModel, sym::Symbol, v::NamedTuple)
+@inline function Base.setproperty!(x::PMModel, sym::Symbol, v::NamedTuple)
     if sym == :parameters
         for vk in keys(v)
             x.parameters._uvalues[x.parameters._values[vk].value] = v[vk]
@@ -70,7 +70,7 @@ end
     end
 end
 
-@inline function Base.setproperty!(x::MRGModel, sym::Symbol, v::Tuple)
+@inline function Base.setproperty!(x::PMModel, sym::Symbol, v::Tuple)
     if sym == :tspan
         x._odeproblem = remake(x._odeproblem, tspan = v)
         setfield!(x, sym, v)
