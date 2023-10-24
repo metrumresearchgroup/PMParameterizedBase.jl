@@ -1,7 +1,7 @@
 module PMParameterized
 using MacroTools
 
-include("MRGModel.jl")
+include("PMModels.jl")
 include("modelingTools.jl")
 include("getproperties.jl")
 include("getindexes.jl")
