@@ -19,6 +19,9 @@ export getDescription
 export getDefault
 export getDefaultExpr
 export getExpr
+export solve
+export solve!
+export ODEForwardSensitivityProblem
 
 
 
