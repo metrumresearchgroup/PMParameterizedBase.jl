@@ -15,3 +15,11 @@ function regenerateODEProblem!(mdl::PMModel)
     u0 = [getproperty(mdl.states, x).value => getNumericValue(getproperty(mdl.states,x), mdl) for x in mdl.states.names]
     mdl._odeproblem = remake(mdl._odeproblem, p = p, u0 = u0)
 end
+
+function getSymbolicName(x::Union{Num,SymbolicUtils.BasicSymbolic{Real}})
+        if hasproperty(x, :val)
+            return x.val.metadata[ModelingToolkit.VariableSource][2]
+        else
+            return x.metadata[ModelingToolkit.VariableSource][2]
+        end
+    end

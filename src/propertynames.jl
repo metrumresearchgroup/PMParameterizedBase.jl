@@ -15,5 +15,5 @@ end
 end
 
 @inline function Base.propertynames(x::PMModel)
-    return [:parameters, :states, :observed, :model, :tspan]
+    return [:parameters, :states, :observed, :model, :tspan, :equations]
 end

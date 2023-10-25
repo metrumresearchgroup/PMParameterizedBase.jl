@@ -1,9 +1,9 @@
-using ParameterizedModels
+using PMParameterized
 using Unitful
 
 
 singh = @model Singh begin
-    @IVs t [unit = u"hr", description = "Independent variable (time in hours)"]
+    @IVs t [unit = u"hr", description = "Independent variable (time in hours)", tspan = (0.0, 24.0)]
     Dt = Differential(t)
 
     @constants begin
@@ -128,8 +128,7 @@ singh = @model Singh begin
 
     @eq Dt(C2_Drug_nM) ~ (CLD_Drug/V2_Drug)*C1_Drug_nM - (CLD_Drug/V2_Drug)*C2_Drug_nM
 
-    @eq Dt(DAR) ~ -K_dec_ADC_plasma*DAR
-
+    @eq Dt(DAR) + Kg_ex ~ -K_dec_ADC_plasma*DAR name = foo
     @eq Dt(TV_mm3) ~ (
         ((Kg_ex*(1-(TV_mm3/V_max)))/((1+(Kg_ex*TV_mm3/Kg_Lin)^Psi)^1/Psi) - 
         (K_kill/(IC_50 + C_Drug_f_cell_nM + C_Drug_b_cell_nM))*(C_Drug_f_cell_nM + C_Drug_b_cell_nM))*TV_mm3
