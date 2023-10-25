@@ -1,10 +1,9 @@
 module PMParameterizedBase
 using MacroTools
-
+using SciMLBase: remake
 include("PMModels.jl")
 
 include("getproperties.jl")
-include("getindexes.jl")
 include("setproperties.jl")
 include("accessors.jl")
 include("propertynames.jl")
@@ -20,9 +19,9 @@ export getDescription
 export getDefault
 export getDefaultExpr
 export getExpr
-export solve
-export solve!
-export ODEForwardSensitivityProblem
+export ModelingToolkit
+export Symbolics
+
 
 
 

@@ -1,5 +1,3 @@
-using SciMLBase
-# function updateEntities!(mdl::PMMo)
 function getNumericValue(x::NumValue)
     mergeddict = merge(x._valmap, x._uvalues)
     out = Symbolics.value(substitute(x._valmap[x.value], mergeddict))

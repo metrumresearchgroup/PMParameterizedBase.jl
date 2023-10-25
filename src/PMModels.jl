@@ -1,9 +1,7 @@
-using PMParameterized
 using ModelingToolkit
 using Symbolics
 import Unitful.@u_str
 using Unitful
-using SciMLBase
 
 
 # Add location metadata type to variables
@@ -31,15 +29,6 @@ Base.@kwdef mutable struct ModelValues <: Number
 end
 
 
-Base.@kwdef struct PMSolution
-    _solution::ODESolution
-    _states::ModelValues
-    _parameters::ModelValues
-    _constants::ModelValues
-    _observed::ModelValues
-    _names::Vector{Symbol}
-end
-
 
 Base.@kwdef mutable struct PMModel
     states::ModelValues
@@ -52,7 +41,6 @@ Base.@kwdef mutable struct PMModel
     _odeproblem::ODEProblem
     observed::ModelValues
     _uvalues::Dict{Num, Number}
-    _solution::Union{PMSolution,Nothing}
     _constants::ModelValues
     _inputs::ModelValues
     model::ModelingToolkit.AbstractSystem
@@ -101,7 +89,6 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
             _odeproblem = ODEProblem((du,u,p,t)->(nothing),(),(0.0,1.0),()),
             observed = ModelValues(names = Symbol[], _values = Dict{Symbol,NumValue}(), _valmap = Dict{Num, Num}(), _uvalues = Dict{Num, Real}()),
             _uvalues = Dict{Num, Real}(),
-            _solution = nothing,
             _constants = ModelValues(names = Symbol[], _values = Dict{Symbol,NumValue}(), _valmap = Dict{Num, Num}(), _uvalues = Dict{Num, Real}()),
             _inputs = ModelValues(names = Symbol[], _values = Dict{Symbol,NumValue}(), _valmap = Dict{Num, Num}(), _uvalues = Dict{Num, Real}()),
             model = @named $Namegen = ODESystem([],t)
