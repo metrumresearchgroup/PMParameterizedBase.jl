@@ -41,6 +41,7 @@ Base.@kwdef mutable struct PMModel
     _odeproblem::ODEProblem
     observed::ModelValues
     _uvalues::Dict{Num, Number}
+    _solution::Union{Nothing, AbstractPMSolution}
     _constants::ModelValues
     _inputs::ModelValues
     model::ModelingToolkit.AbstractSystem
@@ -89,6 +90,7 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
             _odeproblem = ODEProblem((du,u,p,t)->(nothing),(),(0.0,1.0),()),
             observed = ModelValues(names = Symbol[], _values = Dict{Symbol,NumValue}(), _valmap = Dict{Num, Num}(), _uvalues = Dict{Num, Real}()),
             _uvalues = Dict{Num, Real}(),
+            _solution = nothing,
             _constants = ModelValues(names = Symbol[], _values = Dict{Symbol,NumValue}(), _valmap = Dict{Num, Num}(), _uvalues = Dict{Num, Real}()),
             _inputs = ModelValues(names = Symbol[], _values = Dict{Symbol,NumValue}(), _valmap = Dict{Num, Num}(), _uvalues = Dict{Num, Real}()),
             model = @named $Namegen = ODESystem([],t)
