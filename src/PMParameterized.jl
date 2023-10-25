@@ -9,6 +9,7 @@ include("setproperties.jl")
 include("accessors.jl")
 include("propertynames.jl")
 include("helpers.jl")
+include("setindices.jl")
 
 
 model_warnings = true

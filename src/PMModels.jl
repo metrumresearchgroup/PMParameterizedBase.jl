@@ -372,8 +372,6 @@ macro observed(obsin)
 
     q_out = quote
         for observ in $out
-                # push!(obsnames, observ)
-
                 obstmp = NumValue(name = Symbol(observ), value = observ, _valmap = Dict{Symbol, Num}(), _uvalues = Dict{Symbol, Real}(),_defaultExpr = Num(nothing))
                 push!(obs, obstmp)
         end

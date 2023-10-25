@@ -1,5 +1,6 @@
 using DifferentialEquations
 using SciMLSensitivity
+using PMSimulator
 
 
 Base.@kwdef struct partialSol
@@ -25,31 +26,35 @@ end
 
 
 function solve(mdl::PMModel, alg::Union{DEAlgorithm,Nothing} = nothing ; kwargs...)
-    regenerateODEProblem!(mdl)
-    sol = DifferentialEquations.solve(mdl._odeproblem, alg; kwargs...)
+    mdl_internal = deepcopy(mdl)
+    regenerateODEProblem!(mdl_internal)
+    sol = DifferentialEquations.solve(mdl_internal._odeproblem, alg; kwargs...)
     solution = PMSolution(_solution = sol,
-                            _states = mdl.states,
-                            _parameters = mdl.parameters,
-                            _constants = mdl._constants, 
-                            _observed = mdl.observed,
-                            _names = vcat(collect(keys(mdl.observed._values)),mdl.parameters.names,mdl.states.names))
+                            _states = mdl_internal.states,
+                            _parameters = mdl_internal.parameters,
+                            _constants = mdl_internal._constants, 
+                            _observed = mdl_internal.observed,
+                            _names = vcat(collect(keys(mdl_internal.observed._values)),mdl_internal.parameters.names,mdl_internal.states.names))
     return solution
 end
 
 
 function solve!(mdl::PMModel, alg::Union{DEAlgorithm,Nothing} = nothing ; kwargs...)
-    regenerateODEProblem!(mdl)
-    sol = DifferentialEquations.solve(mdl._odeproblem, alg; kwargs...)
+    mdl_internal = deepcopy(mdl)
+    regenerateODEProblem!(mdl_internal)
+    sol = DifferentialEquations.solve(mdl_internal._odeproblem, alg; kwargs...)
     solution = PMSolution(_solution = sol,
-                            _states = mdl.states,
-                            _parameters = mdl.parameters,
-                            _constants = mdl._constants, 
-                            _observed = mdl.observed, 
-                            _names = vcat(collect(keys(mdl.observed._values)),mdl.parameters.names,mdl.states.names))
-    mdl._solution = solution
+                            _states = mdl_internal.states,
+                            _parameters = mdl_internal.parameters,
+                            _constants = mdl_internal._constants, 
+                            _observed = mdl_internal.observed, 
+                            _names = vcat(collect(keys(mdl_internal.observed._values)),mdl_internal.parameters.names,mdl_internal.states.names))
+    mdl_internal._solution = solution
     return nothing
 end
 
+
+# function solve(mdl::PMModel, alg::Union{DEAlgorithm,Nothing} = nothing ; evs::Vector{Union}, kwargs...)
 
 
 function ODEForwardSensitivityProblem(mdl::PMModel, u0::ModelValues, tspan, p::ModelValues, sensealg::SciMLSensitivity.AbstractForwardSensitivityAlgorithm = ForwardSensitivity();
