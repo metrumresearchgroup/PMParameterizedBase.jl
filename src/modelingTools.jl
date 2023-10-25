@@ -1,6 +1,6 @@
 using DifferentialEquations
 using SciMLSensitivity
-using PMSimulator
+
 
 
 Base.@kwdef struct partialSol
