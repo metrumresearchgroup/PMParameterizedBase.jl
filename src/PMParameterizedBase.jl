@@ -1,8 +1,8 @@
-module PMParameterized
+module PMParameterizedBase
 using MacroTools
 
 include("PMModels.jl")
-include("modelingTools.jl")
+
 include("getproperties.jl")
 include("getindexes.jl")
 include("setproperties.jl")
