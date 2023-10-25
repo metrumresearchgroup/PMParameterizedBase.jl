@@ -1,4 +1,4 @@
-using PMParameterized
+using PMParameterizedBase
 using Unitful
 
 
@@ -136,6 +136,4 @@ singh = @model Singh begin
 end;
 
 
-sol = PMParameterized.solve(singh);
-# sol = singh._solution;
 
