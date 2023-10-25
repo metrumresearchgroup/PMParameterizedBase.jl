@@ -27,6 +27,7 @@ Base.@kwdef mutable struct ModelValues <: Number
     _values::Dict{Symbol, NumValue}
     _valmap::Dict{Num, Num}
     _uvalues::Dict{Num, Number}
+    _keyvalmap::Dict{Symbol, Symbol} = Dict{Symbol, Symbol}()
 end
 
 
@@ -53,8 +54,7 @@ Base.@kwdef mutable struct PMModel
     _uvalues::Dict{Num, Number}
     _solution::Union{PMSolution,Nothing}
     _constants::ModelValues
-    _inputs::Dict{Symbol, Num}
-    _inputsSym::Dict{Symbol, Symbol}
+    _inputs::ModelValues
     model::ModelingToolkit.AbstractSystem
 end
 
@@ -73,11 +73,11 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
         # Create an empty array to hold all constants
         cons = NumValue[]
 
-
         # Create an empty array to hold all observed
         obs = NumValue[]
 
-
+        # Create an empty array to hold all inputs
+        inputs = NumValue[]
 
         # Create an empty array to hold the independent variables
         ivs = Num[]
@@ -103,8 +103,7 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
             _uvalues = Dict{Num, Real}(),
             _solution = nothing,
             _constants = ModelValues(names = Symbol[], _values = Dict{Symbol,NumValue}(), _valmap = Dict{Num, Num}(), _uvalues = Dict{Num, Real}()),
-            _inputs = Dict{Symbol, Num}(),
-            _inputsSym = Dict{Symbol, Symbol}(),
+            _inputs = ModelValues(names = Symbol[], _values = Dict{Symbol,NumValue}(), _valmap = Dict{Num, Num}(), _uvalues = Dict{Num, Real}()),
             model = @named $Namegen = ODESystem([],t)
         )
         # Create an empty vector to hold equations
@@ -114,11 +113,6 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
         # Create an empty vector to hold possible equation names
         eqnames = Vector{Union{Tuple{Expr}, Tuple{}}}(undef, 0)
 
-        # Create empty dicts to hold state/equation -> input mappings
-        inputs = Dict{Symbol, Num}()
-        inputsSym = Dict{Symbol, Symbol}()
-
-
 
 
         # Grab everything within the @model block and run it to populate mdl block, expand other macros etc. 
@@ -126,6 +120,7 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
 
         eqSymbol = Vector{Symbol}(undef, 0)
         eqsOrig = copy(eqs)
+        eqinputmap = Dict{Symbol, Symbol}()
         for (i, eq) in enumerate(eqs)
             lhs = eq.lhs
             extra_args = eqnames[i]
@@ -161,16 +156,12 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
                     Real,
                     ipvar_in,
                     ModelingToolkit.toparam))[1]
-            inputs[eqname] = ipvar
-            inputsSym[eqname] = Symbol(ipvar)
+            # inputs[eqname] = ipvar
+            iptmp = NumValue(name = Symbol(ipvar), value = ipvar, _valmap = Dict{Symbol, Num}(), _uvalues = Dict{Symbol, Real}(),_defaultExpr = Num(nothing))
+            push!(inputs, iptmp)
+            eqinputmap[eqname] = symname
             eqs[i] = eq.lhs ~ eq.rhs + ipvar
         end
-
-
-
-
-
-
 
 
         if length(ivs) == 1
@@ -178,8 +169,7 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
                             ModelingToolkit.getdefault(cons[i].value)) for i in 1:lastindex(cons)] : Pair{Symbolics.Num}[]
             parpairs = length(pars)> 0 ? [Pair(pars[i].value, 
                             ModelingToolkit.getdefault(pars[i].value)) for i in 1:lastindex(pars)] : Pair{Symbolics.Num}[]
-            iputvalues = collect(Base.values(inputs))
-            inputpairs  = length(vars)>0 ? [Pair(iputvalues[i], 0.0) for i in 1:lastindex(vars)] : Pair{Symbolics.Num}[]
+            inputpairs  = length(inputs)>0 ? [Pair(inputs[i].value, 0.0) for i in 1:lastindex(vars)] : Pair{Symbolics.Num}[]
             consparpairs = vcat(conspairs, parpairs, inputpairs)
 
             varspairs = length(vars)>0 ? [Pair(vars[i].value, ModelingToolkit.getdefault(vars[i].value)) for i in 1:lastindex(vars)] : Pair{Symbolics.Num}[]
@@ -187,8 +177,8 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
             consin = [cons[i].value for i in 1:lastindex(cons)]
             parsin = [pars[i].value for i in 1:lastindex(pars)]
             varsin = [vars[i].value for i in 1:lastindex(vars)]
-
-            @named $Namegen = ODESystem(eqs, ivs[1], varsin, vcat(parsin, consin, collect(Base.values(inputs))), tspan=getmetadata(ivs[1],IVDomain))
+            inputsin = [inputs[i].value for i in 1:lastindex(inputs)]
+            @named $Namegen = ODESystem(eqs, ivs[1], varsin, vcat(parsin, consin, inputsin), tspan=getmetadata(ivs[1],IVDomain))
             
             prob = ODEProblem(structural_simplify($Namegen),[], getmetadata(ivs[1],IVDomain), consparpairs)
             mdl._odeproblem = prob
@@ -210,8 +200,11 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
                                        _values = Dict(x.name => x for x in obs),
                                        _valmap = Dict(obspairs),
                                        _uvalues = mdl._uvalues)
-            mdl._inputs = inputs
-            mdl._inputsSym = inputsSym
+            mdl._inputs = ModelValues(names = [x.name for x in inputs],
+                                      _values = Dict(x.name => x for x in inputs),
+                                      _valmap = Dict(consparpairs),
+                                      _uvalues = mdl._uvalues,
+                                      _keyvalmap = eqinputmap)
             mdl.tspan = getmetadata(ivs[1],IVDomain)
             mdl.equations = eqsOrig
 
@@ -252,6 +245,12 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
             o._valmap = mdl.observed._valmap
             o._uvalues = mdl._uvalues
             o._defaultExpr = mdl.observed._values[okey].value
+        end
+        for ikey in keys(mdl._inputs._values)
+            i = mdl._inputs._values[ikey]
+            i._valmap = mdl._inputs._valmap
+            i._uvalues = mdl._uvalues
+            i._defaultExpr = mdl._inputs._values[ikey].value
         end
 
         mdl.model = $Namegen # Return the model 
