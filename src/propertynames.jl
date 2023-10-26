@@ -6,5 +6,5 @@ using ModelingToolkit
 end
 
 @inline function Base.propertynames(x::PMModel)
-    return [:parameters, :states, :observed, :model, :tspan, :equations]
+    return [:parameters, :states, :observed, :model, :tspan, :equations, :constants]
 end
