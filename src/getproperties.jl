@@ -12,7 +12,7 @@ using ModelingToolkit
 end
 
 @inline function Base.getproperty(x::PMModel, sym::Symbol)
-    if sym  == :constraints
+    if sym  == :constants
         return getfield(x, :_constants)
     else
         return getfield(x, sym)
