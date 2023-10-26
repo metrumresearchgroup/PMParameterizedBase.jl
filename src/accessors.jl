@@ -55,7 +55,8 @@ function values(mvals::ModelValues; symbolic=false)
         return out
     else
         mergeddict = merge(mvals._valmap, mvals._uvalues)
-        out = [Symbolics.value(substitute(mvals._values[x].value, mergeddict)) for x in mvals.names]
+        # out = [Symbolics.value(substitute(mvals._values[x].value, mergeddict)) for x in mvals.names]
+        out = [Symbolics.value(Symbolics.substitute(mvals._valmap[x], mergeddict)) for x in keys(mvals._valmap)]
         return out
     end
 end
