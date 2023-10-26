@@ -1,7 +1,7 @@
 name = "PMParameterizedBase"
 uuid = "99b5832f-53bf-45ba-a9c8-837ddefabddf"
 authors = ["Tim Knab"]
-version = "0.1.8"
+version = "0.1.9"
 
 [deps]
 ComponentArrays = "b0b7db55-cfe3-40fc-9ded-d10e2dbeff66"
