@@ -36,21 +36,28 @@ end
 @inline function Base.setproperty!(x::PMModel, sym::Symbol, v::AbstractArray)
 
     if sym == :parameters
-        if !all(isa.(keys(v), Symbol))
+        if  !(typeof(v) <: Vector{Pair{Symbol, T}} where T<:Real) && !all(isa.(keys(v), Symbol))
             error("Parameter input must have parameter name keys, please see ComponentArrays or LabelledArrays")
         end
         for vk in keys(v)
-            # setfield!(x.parameters, vk, v[vk])
-            x.parameters._uvalues[x.parameters._values[vk].value] = v[vk]
+            if typeof(v[vk]) <: Pair{Symbol, T} where T <: Real
+                x.parameters._uvalues[x.parameters._values[v[vk].first].value] = v[vk].second
+            else
+                x.parameters._uvalues[x.parameters._values[vk].value] = v[vk]
+            end
 
         end
             # setfield(x,setfield(mdl.parameters
     elseif sym == :states
-        if !all(isa.(keys(v), Symbol))
+        if !(typeof(v) <: Vector{Pair{Symbol, T}} where T<:Real) && !all(isa.(keys(v), Symbol))
             error("Parameter input must have parameter name keys, please see ComponentArrays or LabelledArrays")
         end
         for vk in keys(v)
-            x.states._uvalues[x.states._values[vk].value] = v[vk]
+            if typeof(v[vk]) <: Pair{Symbol, T} where T <: Real
+                x.states._uvalues[x.states._values[v[vk].first].value] = v[vk].second
+            else
+                x.states._uvalues[x.states._values[vk].value] = v[vk]
+            end
             # setfield!(x.states, vk, v[vk])
         end
     else
