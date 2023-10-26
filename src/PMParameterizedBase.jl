@@ -1,6 +1,8 @@
 module PMParameterizedBase
 using MacroTools
 using SciMLBase: remake
+import Base: values
+import Base: names
 abstract type AbstractPMSolution end # Create an abstract type to hold solutions in place
 # Create a dummy solution subtype at some point.
 
