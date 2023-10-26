@@ -25,6 +25,8 @@ export getDefaultExpr
 export getExpr
 export ModelingToolkit
 export Symbolics
+export values
+export names
 
 
 
