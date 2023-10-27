@@ -1,11 +1,11 @@
-function getNumericValue(x::NumValue)
-    mergeddict = merge(x._valmap, x._uvalues)
-    out = Symbolics.value(substitute(x._valmap[x.value], mergeddict))
-    if x.value in keys(x._uvalues)
-        out = x._uvalues[x.value]
-    end
-    return out
-end
+# function getNumericValue(x::NumValue)
+#     mergeddict = merge(x._valmap, x._uvalues)
+#     out = Symbolics.value(substitute(x._valmap[x.value], mergeddict))
+#     if x.value in keys(x._uvalues)
+#         out = x._uvalues[x.value]
+#     end
+#     return out
+# end
 
 
 

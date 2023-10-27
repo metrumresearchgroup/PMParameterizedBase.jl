@@ -3,18 +3,25 @@ using MacroTools
 using SciMLBase: remake
 import Base: values
 import Base: names
+using ModelingToolkit
+using Symbolics
+import Symbolics: VariableSource
+import ModelingToolkit; getmetadata
+import Unitful: @u_str
+import Base: ImmutableDict
+
 abstract type AbstractPMSolution end # Create an abstract type to hold solutions in place
 # Create a dummy solution subtype at some point.
 
 
 include("PMModels.jl")
-
+include("mapping.jl")
+include("helpers.jl")
+include("propertynames.jl")
 include("getproperties.jl")
 include("setproperties.jl")
 include("accessors.jl")
-include("propertynames.jl")
-include("helpers.jl")
-include("setindices.jl")
+# include("setindices.jl")
 
 
 model_warnings = true
