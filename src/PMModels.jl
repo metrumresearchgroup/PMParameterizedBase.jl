@@ -28,19 +28,51 @@ Symbolics.option_to_metadata_type(::Val{:tspan}) = IVDomain
 
 #USE IMMUTABLEDICT INSTEAD OF COMPONENTARRAYS
 
-Base.@kwdef struct ModelConstants
+vecpairReal = Union{Vector{Pair{Symbolics.Num,T1}} where {T1<:Real}, Vector{Pair{Symbolics.Num}}}
+vecpairNum = Union{Vector{Pair{Symbolics.Num,T1}} where {T1<:Number},Vector{Pair{Symbolics.Num}}}
+
+svecNumNumber = AbstractVector{Pair{Symbolics.Num, T}} where {T<:Number}
+
+Base.@kwdef struct Constants
+
     values::Vector{Pair{Num, Union{Number,Num}}}
     sym_to_val::Base.ImmutableDict{Symbol, Int64}
     names::Tuple
 end
 
-Base.@kwdef struct ModelValues
+Base.@kwdef struct Parameters{T1<:Vector{Pair{Num}},T2<:Base.ImmutableDict{Symbol, Int64},T3<:Tuple,T4<:AbstractVector{Pair{Symbolics.Num, Symbolics.Num}},T5<:Constants}
+    values::T1#MVector{Pair{Num, Union{Number,Num}}}
+    sym_to_val::T2#Base.ImmutableDict{Symbol, Int64}
+    names::T3#Tuple
+    defaults::T4#MVector{Pair{Num, Union{Number,Num}}}
+    constants::T5#ModelConstants =  ModelConstants(values = Pair{Num,Number}[], sym_to_val = ImmutableDict{Symbol, Int64}(),  names = tuple())
+end
+
+Base.@kwdef struct Inputs
     values::Vector{Pair{Num, Union{Number,Num}}}
     sym_to_val::Base.ImmutableDict{Symbol, Int64}
     names::Tuple
-    defaults::Base.ImmutableDict{Symbol, Number} = Base.ImmutableDict{Symbol, Number}()
-    constants::ModelConstants =  ModelConstants(values = Pair{Num,Number}[], sym_to_val = ImmutableDict{Symbol, Int64}(),  names = tuple())
 end
+
+
+Base.@kwdef struct Variables{T1<:vecpairNum, T2<:Base.ImmutableDict{Symbol, Int64}, T3<:Tuple, T4<:svecNumNumber, T5<:Constants, T6<:Parameters}
+    values::T1
+    sym_to_val::T2
+    names::T3
+    defaults::T4
+    constants::T5
+    parameters::T6
+end
+
+
+Base.@kwdef struct Observed{T1<:vecpairNum,T2<:Base.ImmutableDict{Symbol, Int64},T3<:Tuple,T4<:Constants, T5<:Parameters}
+    values::T1#MVector{Pair{Num, Union{Number,Num}}}
+    sym_to_val::T2#Base.ImmutableDict{Symbol, Int64}
+    names::T3#Tuple
+    constants::T4
+    parameters::T5
+end
+
 
 
 
@@ -50,14 +82,14 @@ end
 
 
 Base.@kwdef struct PMModel
-    states::ModelValues
+    states::Variables
     independent_variables::Vector{Num}
     tspan::Tuple{Float64, Float64} = (0.0, 1.0)
-    parameters::ModelValues
+    parameters::Parameters
     equations::Vector{Equation}
     _odeproblem::ODEProblem
-    _inputs::ModelValues
-    observed::ModelValues
+    _inputs::Inputs
+    observed::Observed
     model::ModelingToolkit.AbstractSystem
 end
 
@@ -150,20 +182,23 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
 
         # Build ModelConstants for constants
         if length(cons) > 0
-            constantsMV = ModelConstants(values = [Pair(con_i, con_i.val.metadata[Symbolics.VariableDefaultValue]) for con_i in cons],
+            constantsMV = Constants(values = [Pair(con_i, con_i.val.metadata[Symbolics.VariableDefaultValue]) for con_i in cons],
                                     sym_to_val = Base.ImmutableDict([Pair(nm, consSymToNum[nm]) for nm in keys(consSymToNum)]...),
                                     names = tuple(collect(getSymbolicName(nm) for nm in cons)...))
         else
-            constantsMV = ModelConstants(values = Pair{Num,Number}[], sym_to_val = ImmutableDict{Symbol, Int64}(),  names = ())
+            constantsMV = Constants(values = Pair{Num,Number}[], sym_to_val = ImmutableDict{Symbol, Int64}(),  names = ())
         end
 
         # Build ModelValues for parameters
         if length(pars) > 0
-            parametersMV = ModelValues(values = [Pair(par_i, par_i.val.metadata[Symbolics.VariableDefaultValue]) for par_i in pars],
+            # println(Base.ImmutableDict([Pair(par_i, par_i.val.metadata[Symbolics.VariableDefaultValue]) for par_i in pars]...))
+            # println(Base.ImmutableDict([Pair(par_i, par_i.val.metadata[Symbolics.VariableDefaultValue]) for par_i in pars]...))
+            parametersMV = Parameters(values = [Pair(par_i, par_i.val.metadata[Symbolics.VariableDefaultValue]) for par_i in pars],
                                     sym_to_val = Base.ImmutableDict([Pair(nm, parsSymToNum[nm]) for nm in keys(parsSymToNum)]...),
-                                    names = tuple(collect(getSymbolicName(nm) for nm in pars)...), constants = constantsMV)
+                                    names = tuple(collect(getSymbolicName(nm) for nm in pars)...), constants = constantsMV,
+                                    defaults = SVector([Pair(par_i, par_i.val.metadata[Symbolics.VariableDefaultValue]) for par_i in pars]...))
         else
-            parametersMV = ModelValues(values = Pair{Num,Number}[], sym_to_val = ImmutableDict{Symbol, Int64}(),  names = ())
+            parametersMV = Parameters(values = Pair{Num,Number}[], sym_to_val = ImmutableDict{Symbol, Int64}(),  names = (), defaults = nothing)
         end
 
 
@@ -172,21 +207,28 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
         if length(inputs) == 0
             error("Must provide equations for all variables")
         end
-        inputsMV = ModelValues(values = [Pair(input_i, 0.0) for input_i in inputs],
+        inputsMV = Inputs(values = [Pair(input_i, 0.0) for input_i in inputs],
                                     sym_to_val = Base.ImmutableDict([Pair(nm, inputsSymToNum[nm]) for nm in keys(inputsSymToNum)]...),
                                     names = tuple(collect(getSymbolicName(nm) for nm in inputs)...))
-        variablesMV = ModelValues(values = [Pair(var_i, var_i.val.metadata[Symbolics.VariableDefaultValue]) for var_i in vars],
+        variablesMV = Variables(values = [Pair(var_i, var_i.val.metadata[Symbolics.VariableDefaultValue]) for var_i in vars],
                                     sym_to_val = Base.ImmutableDict([Pair(nm, varsSymToNum[nm]) for nm in keys(varsSymToNum)]...),
-                                    names = tuple(collect(getSymbolicName(nm) for nm in vars)...))
+                                    names = tuple(collect(getSymbolicName(nm) for nm in vars)...),
+                                    defaults = SVector([Pair(var_i, var_i.val.metadata[Symbolics.VariableDefaultValue]) for var_i in vars]...),
+                                    constants = constantsMV,
+                                    parameters = parametersMV)
 
 
         # Get observed Variables
         if length(obs) > 0
-            observedMV = ModelValues(values = [Pair(obs_i, obs_i.val.metadata[Symbolics.VariableDefaultValue]) for obs_i in obs],
-            sym_to_val = Base.ImmutableDict([Pair(nm, obsSymToNum[nm]) for nm in keys(obsSymToNum)]...),
-            names = tuple(collect(getSymbolicName(nm) for nm in pars)...))
+            observedMV = Observed(values = [Pair(obs_i, obs_i.val.metadata[Symbolics.VariableDefaultValue]) for obs_i in obs],
+                                            sym_to_val = Base.ImmutableDict([Pair(nm, obsSymToNum[nm]) for nm in keys(obsSymToNum)]...),
+                                            names = tuple(collect(getSymbolicName(nm) for nm in pars)...),
+                                            constants = constantsMV,
+                                            parameters = parametersMV)
         else
-            observedMV = ModelValues(values = Pair{Num,Number}[], sym_to_val = ImmutableDict{Symbol, Int64}(),  names = ())
+            emptyParams = Parameters(values = Pair{Num,Number}[], sym_to_val = ImmutableDict{Symbol, Int64}(),  names = (), defaults = nothing)
+            emptyConstants = Constants(values = Pair{Num,Number}[], sym_to_val = ImmutableDict{Symbol, Int64}(),  names = ())
+            observedMV = Observed(values = Pair{Num,Number}[], sym_to_val = ImmutableDict{Symbol, Int64}(),  names = (), constants = emptyConstants, parameters = emptyParams)
         end
 
         ###############

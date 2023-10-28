@@ -1,12 +1,11 @@
 
 # # # Change property names to only show parameters
 
-
 @inline function Base.propertynames(x::ModelValues)
     return getfield(x,:names)
 end
 
-@inline function Base.propertynames(x::ModelConstants)
+@inline function Base.propertynames(x::Constants)
     return getfield(x, :names)
 end
 

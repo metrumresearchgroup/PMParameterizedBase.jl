@@ -1,6 +1,7 @@
 module PMParameterizedBase
 using MacroTools
 using SciMLBase: remake
+using StaticArrays
 import Base: values
 import Base: names
 using ModelingToolkit
@@ -15,12 +16,14 @@ abstract type AbstractPMSolution end # Create an abstract type to hold solutions
 
 
 include("PMModels.jl")
+ModelValues = Union{Parameters,Variables}
+
 include("mapping.jl")
 include("helpers.jl")
 include("propertynames.jl")
 include("getproperties.jl")
-include("setproperties.jl")
-include("accessors.jl")
+# include("setproperties.jl")
+# include("accessors.jl")
 # include("setindices.jl")
 
 

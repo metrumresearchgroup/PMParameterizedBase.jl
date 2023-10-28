@@ -57,7 +57,7 @@ singh = @model Singh begin
      end
 
      @variables begin
-        (X1_ADC_nmol(t)=0.0), [unit = u"nmol", description = "amount of T-DM1 in the plasma central compartment,[nmol]"]
+        (X1_ADC_nmol(t)=BW*KC_50), [unit = u"nmol", description = "amount of T-DM1 in the plasma central compartment,[nmol]"]
         (X2_ADC_nmol(t)=0.0), [unit = u"nmol", description = "amount of T-DM1 in the peripheral compartment"]
         (C_ADC_f_ex_nM(t)=0.0), [unit = u"nmol*L^-1", description = "concentration of T-DM1 in the tumor extracellular space"]
         (C_ADC_b_ex_nM(t)=0.0), [unit = u"nmol*L^-1", description = "concentration of T-DM1 bound to tumor cell surface,[nM]"]

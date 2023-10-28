@@ -1,42 +1,41 @@
-# # TYPE CONVERSION RULES ARE AWESOME.
-# @inline function Base.convert(::Type{T}, x::NumValue) where {T<:Number}
-#     if T === NumValue
-#         out = x
-#     else
-#         if !isnothing(x._valmap)
-#             mergeddict = merge(x._valmap, x._uvalues)
+function getExpr(mvs::ModelValues, sym::Symbol)::Num
+    valuepair = getfield(x,:values)[getfield(x,:sym_to_val)[sym]]
+    return ModelingToolkit.getdefault(valuepair.first)
+end
 
-#             out = Symbolics.value(substitute(x._valmap[x.value], mergeddict))
-#             if x.value in keys(x._uvalues)
-#                 out = x._uvalues[x.value]
-#             end
-#         else 
-#             out = x.value
-#         end
-#     end
-#     return out
-# end
+function getExprs(mvs::ModelValues, syms::Vector{Symbol})::Num
+    out = Vector{Num}(undef, length(syms))
+    for (i, sym) in enumerate(syms)
+        valuepair = getfield(x,:values)[getfield(x,:sym_to_val)[sym]]
+        out[i] = ModelingToolkit.getdefault(valuepair.first)
+    end
+    return out
+end
 
 
-# function getDefault(value::NumValue)
-#     return Symbolics.value(substitute(ModelingToolkit.getdefault(value.value), value._valmap))
-# end
+function getDefault(mvs::ModelValues, sym::Symbol)
+    valuepair = getfield(mvs,:values)[getfield(mvs,:sym_to_val)[sym]]
+    mapto = [valuepair]
+    mapping = vcat(getfield(mvs,:defaults)..., getfield(getfield(mvs,:constants),:values))
+    println(mapping)
+    return getfield(mapVector(mapto, mapping)[1], :second)
+end
 
 
-# function getDefaultExpr(value::NumValue) # Grab the expression for the parameter
-#     return ModelingToolkit.getdefault(value._defaultExpr)
-# end
+function getDefaultExpr(value::Num) # Grab the expression for the parameter
+    return ModelingToolkit.getdefault(value)
+end
 
 
 
-# function getUnit(value::NumValue)
-#     return ModelingToolkit.get_unit(value.value)
-# end
+function getUnit(value::Num)
+    return ModelingToolkit.get_unit(value)
+end
 
 
-# function getDescription(value::NumValue)
-#     return ModelingToolkit.getdescription(value.value)
-# end
+function getDescription(value::Num)
+    return ModelingToolkit.getdescription(value.value)
+end
 
 # function names(mvals::ModelValues; symbolic=true)
 #     if symbolic
