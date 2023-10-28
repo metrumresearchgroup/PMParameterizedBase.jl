@@ -1,10 +1,14 @@
-using Symbolics
-using ModelingToolkit
-# # Change property names to only show parameters
+
+# # # Change property names to only show parameters
+
 @inline function Base.propertynames(x::ModelValues)
-    return x.names
+    return getfield(x,:names)
+end
+
+@inline function Base.propertynames(x::Constants)
+    return getfield(x, :names)
 end
 
 @inline function Base.propertynames(x::PMModel)
-    return [:parameters, :states, :observed, :model, :tspan, :equations, :constants]
+    return [:parameters, :states, :constants, :tspan, :model, :equations, :observed]
 end
