@@ -73,14 +73,6 @@ Base.@kwdef struct Observed{T1<:vecpairNum,T2<:Base.ImmutableDict{Symbol, Int64}
     parameters::T5
 end
 
-
-
-
-Base.@kwdef struct ModelDefaults
-    values::Base.ImmutableDict{Symbol, Number}
-end
-
-
 Base.@kwdef struct PMModel
     states::Variables
     independent_variables::Vector{Num}

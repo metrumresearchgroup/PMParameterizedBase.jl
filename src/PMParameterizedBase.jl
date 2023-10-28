@@ -24,7 +24,8 @@ include("propertynames.jl")
 include("getproperties.jl")
 include("setproperties.jl")
 include("accessors.jl")
-# include("setindices.jl")
+include("setindices.jl")
+include("getindices.jl")
 
 
 model_warnings = true
