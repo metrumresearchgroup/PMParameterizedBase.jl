@@ -214,7 +214,7 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
         if length(obs) > 0
             observedMV = Observed(values = [Pair(obs_i, obs_i.val.metadata[Symbolics.VariableDefaultValue]) for obs_i in obs],
                                             sym_to_val = Base.ImmutableDict([Pair(nm, obsSymToNum[nm]) for nm in keys(obsSymToNum)]...),
-                                            names = tuple(collect(getSymbolicName(nm) for nm in pars)...),
+                                            names = tuple(collect(getSymbolicName(nm) for nm in obs)...),
                                             constants = constantsMV,
                                             parameters = parametersMV)
         else

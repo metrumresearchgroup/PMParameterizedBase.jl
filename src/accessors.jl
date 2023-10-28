@@ -38,6 +38,10 @@ function names(mvals::ModelValues)
     return out
 end
 
+function names(mvals::Observed)
+    out = tuple(collect(nm for nm in mvals.names)...)
+    return out
+end
 
 
 
