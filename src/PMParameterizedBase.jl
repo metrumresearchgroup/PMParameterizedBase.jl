@@ -22,8 +22,8 @@ include("mapping.jl")
 include("helpers.jl")
 include("propertynames.jl")
 include("getproperties.jl")
-# include("setproperties.jl")
-# include("accessors.jl")
+include("setproperties.jl")
+include("accessors.jl")
 # include("setindices.jl")
 
 
