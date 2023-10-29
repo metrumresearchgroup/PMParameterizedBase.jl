@@ -28,12 +28,12 @@ function getDescription(value::Num)
     value = getfield(mvs, :values)[getfield(mvs,:sym_to_val)[sym]]
     return ModelingToolkit.getdescription(value.first)end
 
-function values(mvals::ModelValues; symbolic=false)
+function Base.values(mvals::ModelValues; symbolic=false)
     out = tuple(collect(getproperty(mvals, nm) for nm in mvals.names)...)
     return out
 end
 
-function names(mvals::ModelValues)
+function Base.names(mvals::ModelValues)
     out = tuple(collect(nm for nm in mvals.names)...)
     return out
 end
