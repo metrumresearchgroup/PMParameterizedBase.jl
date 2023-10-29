@@ -324,7 +324,7 @@ macro variables(xs...)
                 error("State $var must have an initial value")
             else
                 push!(vars, var)
-                varsSymToNum[getmetadata(var,VariableSource)[2]] = length(var)
+                varsSymToNum[getmetadata(var,VariableSource)[2]] = length(vars)
             end
         end
 
