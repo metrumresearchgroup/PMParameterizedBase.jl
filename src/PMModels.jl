@@ -175,7 +175,7 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
                                     names = tuple(collect(getSymbolicName(nm) for nm in pars)...), constants = constantsMV,
                                     defaults = SVector([Pair(par_i, par_i.val.metadata[Symbolics.VariableDefaultValue]) for par_i in pars]...))
         else
-            parametersMV = Parameters(values = Pair{Num,Number}[], sym_to_val = ImmutableDict{Symbol, Int64}(),  names = (), defaults = nothing)
+            parametersMV = Parameters(values = Pair{Num}[], sym_to_val = ImmutableDict{Symbol, Int64}(),  names = (), defaults = Pair{Symbolics.Num, Symbolics.Num}[], constants = emptyConstants,)
         end
 
 
@@ -203,9 +203,7 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
                                             constants = constantsMV,
                                             parameters = parametersMV)
         else
-            emptyConstants = Constants(values = Pair{Num,Number}[], sym_to_val = ImmutableDict{Symbol, Int64}(),  names = ())
-            emptyParams = Parameters(values = Pair{Num,Number}[], sym_to_val = ImmutableDict{Symbol, Int64}(),  names = (), constants = emptyConstants, defaults = nothing)
-            observedMV = Observed(values = Pair{Num,Number}[], sym_to_val = ImmutableDict{Symbol, Int64}(),  names = (), constants = emptyConstants, parameters = emptyParams)
+            observedMV = Observed(values = Pair{Num,Number}[], sym_to_val = ImmutableDict{Symbol, Int64}(),  names = (), constants = constantsMV, parameters = parametersMV)
         end
 
         ###############
