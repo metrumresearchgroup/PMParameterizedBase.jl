@@ -10,7 +10,7 @@
 
 
 
-function getSymbolicName(x::Union{Num,SymbolicUtils.BasicSymbolic{Real}})
+@inline function getSymbolicName(x::Union{Num,SymbolicUtils.BasicSymbolic{Real}})
         if hasproperty(x, :val)
             return x.val.metadata[ModelingToolkit.VariableSource][2]
         else

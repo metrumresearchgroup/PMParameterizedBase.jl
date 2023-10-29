@@ -31,6 +31,15 @@ end
     end
 end
 
+@inline function Base.getproperty(x::Inputs, sym::Symbol)
+    if sym in getfield(x, :names)
+        idx = getindex(getfield(x, :sym_to_val), sym)
+        return getfield(getindex(getfield(x, :values),idx),:second)
+    else
+        return getfield(x, sym)
+    end
+end
+
 @inline function Base.getproperty(x::PMModel, sym::Symbol)
     if sym == :constants
         return getfield(getfield(x,:parameters), :constants)
