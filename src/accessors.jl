@@ -24,22 +24,23 @@ function getUnit(mvs::ModelValues, sym::Symbol)
     return ModelingToolkit.get_unit(value.first)
 end
 
-function getDescription(value::Num)
+function getDescription(mvs::ModelValues,sym::Symbol)
     value = getfield(mvs, :values)[getfield(mvs,:sym_to_val)[sym]]
-    return ModelingToolkit.getdescription(value.first)end
+    return ModelingToolkit.getdescription(value.first)
+end
 
 function Base.values(mvals::ModelValues; symbolic=false)
-    out = tuple(collect(getproperty(mvals, nm) for nm in mvals.names)...)
+    out = [getproperty(mvals, nm) for nm in mvals.names]
     return out
 end
 
 function Base.names(mvals::ModelValues)
-    out = tuple(collect(nm for nm in mvals.names)...)
+    out = [nm for nm in mvals.names]
     return out
 end
 
 function names(mvals::Observed)
-    out = tuple(collect(nm for nm in mvals.names)...)
+    out = [nm for nm in mvals.names]
     return out
 end
 

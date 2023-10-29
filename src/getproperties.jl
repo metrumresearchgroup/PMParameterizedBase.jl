@@ -48,6 +48,11 @@ end
     end
 end
 
-
-
-
+# @inline function Base.getproperty(x::ModelValues, sym::Symbol)
+#     println(sym)
+#     if sym == :names
+#         return convert(Vector, collect(getfield(x,:names)))
+#     else
+#         return getfield(x,sym)
+#     end
+# end
