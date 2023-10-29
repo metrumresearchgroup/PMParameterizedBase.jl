@@ -54,6 +54,7 @@ Base.@kwdef struct Observed{T1<:vecpairNum,T2<:Base.ImmutableDict{Symbol, Int64}
     parameters::T5
 end
 
+
 Base.@kwdef mutable struct PMModel
     const states::Variables
     const independent_variables::Vector{Num}
@@ -64,7 +65,7 @@ Base.@kwdef mutable struct PMModel
     const _inputs::Inputs
     const observed::Observed
     const model::ModelingToolkit.AbstractSystem
-    _solution::Union{AbstractODESolution,Nothing} = nothing
+    _solution::Union{AbstractPMSolution,Nothing} = nothing
 end
 
 
