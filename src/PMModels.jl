@@ -12,6 +12,9 @@ Symbolics.option_to_metadata_type(::Val{:tspan}) = IVDomain
 vecpairReal = Union{Vector{Pair{Symbolics.Num,T1}} where {T1<:Real}, Vector{Pair{Symbolics.Num}}}
 vecpairNum = Union{Vector{Pair{Symbolics.Num,T1}} where {T1<:Number},Vector{Pair{Symbolics.Num}}}
 
+
+# AbstractVector{Pair{Symbolics.Num, Symbolics.Num}}
+
 svecNumNumber = AbstractVector{Pair{Symbolics.Num, T}} where {T<:Number}
 
 Base.@kwdef struct Constants
@@ -21,7 +24,7 @@ Base.@kwdef struct Constants
     names::Tuple
 end
 
-Base.@kwdef struct Parameters{T1<:Vector{Pair{Num}},T2<:Base.ImmutableDict{Symbol, Int64},T3<:Tuple,T4<:AbstractVector{Pair{Symbolics.Num, Symbolics.Num}},T5<:Constants}
+Base.@kwdef struct Parameters{T1<:Vector{Pair{Num}},T2<:Base.ImmutableDict{Symbol, Int64},T3<:Tuple,T4<:svecNumNumber,T5<:Constants}
     values::T1
     sym_to_val::T2
     names::T3
