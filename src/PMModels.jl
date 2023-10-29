@@ -203,8 +203,8 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
                                             constants = constantsMV,
                                             parameters = parametersMV)
         else
-            emptyParams = Parameters(values = Pair{Num,Number}[], sym_to_val = ImmutableDict{Symbol, Int64}(),  names = (), defaults = nothing)
             emptyConstants = Constants(values = Pair{Num,Number}[], sym_to_val = ImmutableDict{Symbol, Int64}(),  names = ())
+            emptyParams = Parameters(values = Pair{Num,Number}[], sym_to_val = ImmutableDict{Symbol, Int64}(),  names = (), constants = emptyConstants, defaults = nothing)
             observedMV = Observed(values = Pair{Num,Number}[], sym_to_val = ImmutableDict{Symbol, Int64}(),  names = (), constants = emptyConstants, parameters = emptyParams)
         end
 
