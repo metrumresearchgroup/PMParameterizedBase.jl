@@ -2,31 +2,12 @@
 
 
 
-# # Add location metadata type to variables
-# ## This will let us specify a file to look in for variable/parameter values
-# struct VariableLoc end
+
 struct IVDomain end
-# Symbolics.option_to_metadata_type(::Val{:location}) = VariableLoc
+Symbolics.option_to_metadata_type(::Val{:location}) = VariableLoc
 Symbolics.option_to_metadata_type(::Val{:domain}) = IVDomain
 Symbolics.option_to_metadata_type(::Val{:tspan}) = IVDomain
-# Base.@kwdef mutable struct NumValue <: Number
-#     name::Symbol
-#     value::Num
-#     _valmap::Dict{Num, Num}
-#     _uvalues::Dict{Num, Number}
-#     _defaultExpr::Num
-#     _constant::Bool = false
-# end
 
-# Base.@kwdef mutable struct ModelValues <: Number
-#     names::Vector{Symbol}
-#     _values::Dict{Symbol, NumValue}
-#     _valmap::Dict{Num, Num}
-#     _uvalues::Dict{Num, Number}
-#     _keyvalmap::Dict{Symbol, Symbol} = Dict{Symbol, Symbol}()
-# end
-
-#USE IMMUTABLEDICT INSTEAD OF COMPONENTARRAYS
 
 vecpairReal = Union{Vector{Pair{Symbolics.Num,T1}} where {T1<:Real}, Vector{Pair{Symbolics.Num}}}
 vecpairNum = Union{Vector{Pair{Symbolics.Num,T1}} where {T1<:Number},Vector{Pair{Symbolics.Num}}}
@@ -41,11 +22,11 @@ Base.@kwdef struct Constants
 end
 
 Base.@kwdef struct Parameters{T1<:Vector{Pair{Num}},T2<:Base.ImmutableDict{Symbol, Int64},T3<:Tuple,T4<:AbstractVector{Pair{Symbolics.Num, Symbolics.Num}},T5<:Constants}
-    values::T1#MVector{Pair{Num, Union{Number,Num}}}
-    sym_to_val::T2#Base.ImmutableDict{Symbol, Int64}
-    names::T3#Tuple
-    defaults::T4#MVector{Pair{Num, Union{Number,Num}}}
-    constants::T5#ModelConstants =  ModelConstants(values = Pair{Num,Number}[], sym_to_val = ImmutableDict{Symbol, Int64}(),  names = tuple())
+    values::T1
+    sym_to_val::T2
+    names::T3
+    defaults::T4
+    constants::T5
 end
 
 Base.@kwdef struct Inputs
@@ -73,17 +54,19 @@ Base.@kwdef struct Observed{T1<:vecpairNum,T2<:Base.ImmutableDict{Symbol, Int64}
     parameters::T5
 end
 
-Base.@kwdef struct PMModel
-    states::Variables
-    independent_variables::Vector{Num}
+Base.@kwdef mutable struct PMModel
+    const states::Variables
+    const independent_variables::Vector{Num}
     tspan::Tuple{Float64, Float64} = (0.0, 1.0)
-    parameters::Parameters
-    equations::Vector{Equation}
-    _odeproblem::ODEProblem
-    _inputs::Inputs
-    observed::Observed
-    model::ModelingToolkit.AbstractSystem
+    const parameters::Parameters
+    const equations::Vector{Equation}
+    const _odeproblem::ODEProblem
+    const _inputs::Inputs
+    const observed::Observed
+    const model::ModelingToolkit.AbstractSystem
 end
+
+
 
 
 macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, AdditionalIndepVars... = nothing)
@@ -227,19 +210,20 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
         # BUILD SYSTEM
         ##############
 
+        tspan = getmetadata(ivs[1],IVDomain)
         if length(ivs) == 1
             vin = [v.first for v in variablesMV.values]
             pin = [p.first for p in parametersMV.values]
             cin = [p.first for p in constantsMV.values]
             iin = [i.first for i in inputsMV.values]
-            @named $Namegen = ODESystem(eqs, ivs[1], vin, vcat(pin, cin, iin))#, tspan=getmetadata(ivs[1],IVDomain))
-            prob = ODEProblem(structural_simplify($Namegen),variablesMV.values, getmetadata(ivs[1],IVDomain), vcat(parametersMV.values, constantsMV.values, inputsMV.values))
+            @named $Namegen = ODESystem(eqs, ivs[1], vin, vcat(pin, cin, iin), tspan=tspan)
+            prob = ODEProblem(structural_simplify($Namegen),variablesMV.values, tspan, vcat(parametersMV.values, constantsMV.values, inputsMV.values))
         end
 
     mdl = PMModel(
         states = variablesMV,
         independent_variables = Vector{Num}(undef,0),
-        tspan = (0.0, 1.0),
+        tspan = tspan,
         parameters = parametersMV,
         equations = Equation[],
         _odeproblem = prob,
@@ -347,9 +331,6 @@ macro variables(xs...)
     end
     return q_out
 end
-
-
-
 
 
 
