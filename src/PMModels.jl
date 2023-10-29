@@ -189,7 +189,7 @@ macro model(Name, MdlEx)#, DerivativeSymbol, DefaultIndependentVariable, MdlEx, 
         end
         inputsMV = Inputs(values = [Pair(input_i, 0.0) for input_i in inputs],
                                     sym_to_val = Base.ImmutableDict([Pair(nm, inputsSymToNum[nm]) for nm in keys(inputsSymToNum)]...),
-                                    names = tuple(collect(getSymbolicName(nm) for nm in keys(inputsSymToNum))...))
+                                    names = tuple(collect(nm for nm in keys(inputsSymToNum))...))
         variablesMV = Variables(values = [Pair(var_i, var_i.val.metadata[Symbolics.VariableDefaultValue]) for var_i in vars],
                                     sym_to_val = Base.ImmutableDict([Pair(nm, varsSymToNum[nm]) for nm in keys(varsSymToNum)]...),
                                     names = tuple(collect(getSymbolicName(nm) for nm in vars)...),
