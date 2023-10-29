@@ -1,3 +1,4 @@
+using PMParameterizedBase
 singh = @model Singh begin
     @IVs t [unit = u"hr", description = "Independent variable (time in hours)", tspan = (0.0, 24.0)]
     Dt = Differential(t)

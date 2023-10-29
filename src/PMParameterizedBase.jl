@@ -1,6 +1,7 @@
 module PMParameterizedBase
 using MacroTools
 using SciMLBase: remake
+using SciMLBase: AbstractODESolution
 using StaticArrays
 import Base: values
 import Base: names

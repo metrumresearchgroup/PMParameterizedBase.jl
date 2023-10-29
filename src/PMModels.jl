@@ -64,6 +64,7 @@ Base.@kwdef mutable struct PMModel
     const _inputs::Inputs
     const observed::Observed
     const model::ModelingToolkit.AbstractSystem
+    _solution::Union{AbstractODESolution,Nothing} = nothing
 end
 
 
