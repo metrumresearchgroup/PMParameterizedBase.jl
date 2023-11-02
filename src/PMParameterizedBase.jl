@@ -12,8 +12,9 @@ import ModelingToolkit; getmetadata
 import Unitful: @u_str
 import Base: ImmutableDict
 
+abstract type PMEvent end # Create an abstract array type for events
 abstract type AbstractPMSolution end # Create an abstract type to hold solutions in place
-# Create a dummy solution subtype at some point.
+
 
 
 include("PMModels.jl")
