@@ -42,6 +42,7 @@ export ModelingToolkit
 export Symbolics
 export values
 export names
+export getModelIndex
 
 
 
